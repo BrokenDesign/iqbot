@@ -12,9 +12,9 @@ from discord.ext import commands, tasks
 from discord.ext.commands import Bot, Context
 from icecream import ic
 from loguru import logger
-from senor_bot.checks import bot_manager
-from senor_bot.config import settings, whitelist
-from senor_bot.db import Question, write_question
+from iqbot.checks import bot_manager
+from iqbot.config import settings, whitelist
+from iqbot.db import Question, write_question
 
 
 class IQ(commands.Cog):

@@ -5,7 +5,8 @@ import random
 from discord.ext import commands
 from discord.ext.commands import Context
 from loguru import logger
-from senor_bot.checks import bot_manager
+
+from iqbot.checks import bot_manager
 
 
 class Misc(commands.Cog):
@@ -16,7 +17,7 @@ class Misc(commands.Cog):
 
     @commands.check(bot_manager)
     @commands.slash_command(name="ping", description="checks bot latency")
-    async def ping(self, ctx: commands.Context):
+    async def ping(self, ctx):
         try:
             await ctx.respond(f"Pong! ```latency = {round(self.bot.latency, 1)}ms```")
         except Exception as e:
