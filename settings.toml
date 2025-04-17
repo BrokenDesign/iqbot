@@ -1,0 +1,25 @@
+[database]
+url = "sqlite+aiosqlite:///data.db"
+
+[bot]
+prefix = "."
+temp_dir = "."
+cogs = ["misc"]
+
+[bot.owner]
+id = 477506746986921992
+
+[bot.intents]
+guilds = true
+messages = true
+message_content = true
+
+[[bot.whitelist]]
+guild = 1361882687895371838
+channel = 1361882688709198077
+roles = []
+
+[[bot.whitelist]]
+guild = 789692030741774368
+channel = 978273836338413648
+roles = []
