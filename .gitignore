@@ -1,3 +1,5 @@
+
+.vscode
 logs
 # Ignore dynaconf secret files
 .secrets.*

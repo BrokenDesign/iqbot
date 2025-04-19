@@ -15,7 +15,6 @@ class Misc(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.check(bot_manager)
     @commands.slash_command(name="ping", description="checks bot latency")
     async def ping(self, ctx):
         try:

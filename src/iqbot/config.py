@@ -1,37 +1,89 @@
-import os
-from pprint import pprint
+from pathlib import Path
+from typing import Any
 
-from box import Box
-from dynaconf import Dynaconf
-from icecream import ic
+import tomli
+from pydantic import BaseModel
+from pydantic_settings import BaseSettings
 
-# ic.disable()
 
-config_files = ["settings.toml"]
-if os.path.exists(".secrets.toml"):
-    config_files.append(".secrets.toml")
+class Tokens(BaseModel):
+    bot: str
+    gpt: str
 
-settings = Dynaconf(
-    envvar_prefix="DYNACONF",
-    settings_files=config_files,
-    load_dotenv=True,
-)
 
-whitelist = {config.guild: config for config in settings.bot.whitelist}
+class DatabaseSettings(BaseModel):
+    url: str
 
-if "tokens" not in settings:
-    settings.tokens = Box()
 
-if "BOT_TOKEN" in os.environ:
-    settings.tokens.bot = os.environ["BOT_TOKEN"]
+class OwnerSettings(BaseModel):
+    id: int
 
-if "GPT_TOKEN" in os.environ:
-    settings.tokens.gpt = os.environ["GPT_TOKEN"]
 
-if settings.tokens.bot == None or settings.tokens.gpt == None:
-    raise Exception(
-        "config: BOT_TOKEN and GPT_TOKEN must be specified in .secrets.toml or as environment variables"
-    )
+class IntentsSettings(BaseModel):
+    guilds: bool
+    messages: bool
+    message_content: bool
+
+
+class WhitelistEntry(BaseModel):
+    guild: int
+    channel: int
+    roles: list[int]
+
+
+class BotSettings(BaseModel):
+    prefix: str
+    temp_dir: str
+    cogs: list[str]
+    owner: OwnerSettings
+    intents: IntentsSettings
+    whitelist: list[WhitelistEntry]
+
+
+class GptHistorySettings(BaseModel):
+    minutes: int
+    messages: int
+
+
+class GptSettings(BaseModel):
+    model: str
+    max_tokens: int
+    history: GptHistorySettings
+
+
+class Settings(BaseSettings):
+    database: DatabaseSettings
+    bot: BotSettings
+    gpt: GptSettings
+    tokens: Tokens
+
+
+def load_toml(path: Path) -> dict[str, Any]:
+    with path.open("rb") as f:
+        return tomli.load(f)
+
+
+def deep_merge(base: dict, override: dict) -> dict:
+    for key, value in override.items():
+        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+            base[key] = deep_merge(base[key], value)
+        else:
+            base[key] = value
+    return base
+
+
+def load_settings() -> Settings:
+    base_config = load_toml(Path("settings.toml"))
+    if Path(".secrets").exists():
+        secrets_config = load_toml(Path(".secrets.toml"))
+        merged = deep_merge(base_config, secrets_config)
+    else:
+        merged = base_config
+    return Settings(**merged)
+
+
+settings = load_settings()
+
 
 if __name__ == "__main__":
-    pprint(dict(settings))
+    print(settings.model_dump_json(indent=2))

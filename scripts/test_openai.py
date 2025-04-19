@@ -1,22 +1,33 @@
 from pprint import pprint
 
 import openai
+from openai import OpenAI
 
-from senor_bot.config import settings
+from iqbot.config import settings
 
-openai.api_key = settings.tokens.gpt
-response = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo",
+client = OpenAI(api_key=settings.tokens.gpt)
+
+# response = client.responses.create(
+#     model="gpt-4o",
+#     instructions="You are a coding assistant that talks like a pirate.",
+#     input="How do I check if a Python object is an instance of a class?",
+#     max_tokens=100,
+# )
+
+response = client.chat.completions.create(
+    model="gpt-4o",
     messages=[
         {
+            "role": "system",
+            "content": "You are a coding assistant that talks like a pirate.",
+        },
+        {
             "role": "user",
-            "content": "Can 'Something approaching fascism' be considered a response to the question 'What is the governmental system in Canada?'",
+            "content": "How do I check if a Python object is an instance of a class?",
         },
     ],
+    max_tokens=50,  # maximum tokens in the response
 )
-print(response)
-print("********")
-print("Response from GPT-3 Turbo:", response.choices[0].message.content.strip())
-print(
-    "Response from GPT-3 Turbo:", "yes" in response.choices[0].message.content.strip()
-)
+
+print(response.choices[0].message.content)
+print("finished")
