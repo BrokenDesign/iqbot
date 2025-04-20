@@ -14,7 +14,7 @@ from iqbot.config import settings
 for i in range(5):
     logger.add(f"logs/file{i}.log", rotation="10 MB")
 
-intents = Intents(**settings.bot.intents)
+intents = Intents(**settings.bot.intents.model_dump())
 bot = commands.Bot(command_prefix=settings.bot.prefix, intents=intents)
 
 if not os.path.exists("data.db"):

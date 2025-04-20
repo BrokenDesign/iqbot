@@ -17,11 +17,11 @@ Base = declarative_base()
 
 engine = create_async_engine(
     settings.database.url,
-    echo=False,
-    pool_size=10,
-    max_overflow=20,
-    pool_recycle=3600,
-    pool_timeout=30,
+    echo=settings.database.echo,
+    pool_size=settings.database.pool_size,
+    max_overflow=settings.database.max_overflow,
+    pool_recycle=settings.database.pool_recycle,
+    pool_timeout=settings.database.pool_timeout,
 )
 
 async_session = async_sessionmaker(engine, expire_on_commit=False)
@@ -35,11 +35,6 @@ class User(Base):
     guild_id: Mapped[int] = mapped_column(index=True)
     user_id: Mapped[int] = mapped_column(index=True)
     iq: Mapped[Optional[int]] = mapped_column(default=100)
-
-    def __init__(self, guild_id, user_id, iq: Optional[int] = 100) -> None:
-        self.guild_id = guild_id
-        self.user_id = user_id
-        self.iq = iq
 
     def __repr__(self):
         return pformat(self.to_dict())
@@ -58,28 +53,12 @@ class Bet(Base):
     __allow_unmapped__ = True
 
     message_id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    timestamp: Mapped[datetime] = mapped_column(default_factory=datetime.now)
+    timestamp: Mapped[datetime] = mapped_column(default=lambda: datetime.now())
     user_id_1: Mapped[int] = mapped_column(index=True)
     user_id_2: Mapped[int] = mapped_column(index=True)
     bet: Mapped[int]
     is_open: Mapped[bool] = mapped_column(default=True)
     winner: Mapped[Optional[int]] = mapped_column(nullable=True)
-
-    def __init__(
-        self,
-        message_id: int,
-        timestamp: datetime,
-        user_id_1: int,
-        user_id_2: int,
-        bet: int,
-    ) -> None:
-        self.message_id = message_id
-        self.timestamp = timestamp
-        self.user_id_1 = user_id_1
-        self.user_id_2 = user_id_2
-        self.bet = bet
-        self.is_open = True
-        self.winner = None
 
     def __repr__(self):
         return pformat(self.to_dict())

@@ -1,5 +1,6 @@
 [database]
 url = "sqlite+aiosqlite:///data.db"
+echo = false
 pool_size = 10
 max_overflow = 20
 pool_recycle = 3600
@@ -8,7 +9,7 @@ pool_timeout = 30
 [bot]
 prefix = "."
 temp_dir = "."
-cogs = ["owner", "misc", "iq"]
+cogs = ["owner", "misc", "betting"]
 
 [bot.owner]
 id = 477506746986921992
