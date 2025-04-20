@@ -13,6 +13,11 @@ class Tokens(BaseModel):
 
 class DatabaseSettings(BaseModel):
     url: str
+    echo: bool
+    pool_size: int
+    max_overflow: int
+    pool_recycle: int
+    pool_timeout: int
 
 
 class OwnerSettings(BaseModel):

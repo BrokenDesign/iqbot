@@ -1,10 +1,14 @@
 [database]
 url = "sqlite+aiosqlite:///data.db"
+pool_size = 10
+max_overflow = 20
+pool_recycle = 3600
+pool_timeout = 30
 
 [bot]
 prefix = "."
 temp_dir = "."
-cogs = ["misc", "iq"]
+cogs = ["owner", "misc", "iq"]
 
 [bot.owner]
 id = 477506746986921992

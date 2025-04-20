@@ -1,6 +1,6 @@
 from discord.ext.commands import Context
 
-from iqbot.config import settings, whitelist
+from iqbot.config import settings
 
 
 def bot_manager(ctx: Context):

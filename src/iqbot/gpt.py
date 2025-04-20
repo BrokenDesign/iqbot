@@ -9,6 +9,8 @@ from openai import OpenAI
 
 from iqbot.config import settings
 
+client = OpenAI(api_key=settings.tokens.gpt)
+
 
 class Role(str, Enum):
     SYSTEM = "system"
@@ -45,6 +47,9 @@ async def build_prompt(conversation: str, command_prompt: str) -> list[ChatMessa
             role=Role.SYSTEM,
             content="You are a chat bot that answers questions based on the context of provided conversation. "
             "You are not allowed to answer any questions that are not related to the provided conversation. "
+            "You should refer to users with the exact unicode characters provided in the conversation. "
+            "When asked for a winner you should respond with the name of the winner as the first word of your response. "
+            "You should assess the winner based on the logic and correctness of the arguments presented in the conversation. "
             f"Please limit your responses to {settings.gpt.max_tokens} tokens.",
         ),
         ChatMessage(
@@ -55,7 +60,7 @@ async def build_prompt(conversation: str, command_prompt: str) -> list[ChatMessa
     return messages
 
 
-async def send_prompt(ctx: Context, client: OpenAI, command_prompt: str) -> str:
+async def send_prompt(ctx: Context, command_prompt: str) -> str:
     conversation = await read_context(ctx)
     if not conversation:
         logger.warning("No conversation history found.")

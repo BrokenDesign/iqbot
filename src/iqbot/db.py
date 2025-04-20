@@ -7,15 +7,23 @@ from pprint import pformat
 from typing import Optional, Sequence
 
 from loguru import logger
-from sqlalchemy import Boolean, Column, DateTime, Integer
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.future import select
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column
 
 from iqbot.config import settings
 
 Base = declarative_base()
-engine = create_async_engine(settings.database.url, echo=False, pool_recycle=3600)
+
+engine = create_async_engine(
+    settings.database.url,
+    echo=False,
+    pool_size=10,
+    max_overflow=20,
+    pool_recycle=3600,
+    pool_timeout=30,
+)
+
 async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 
@@ -23,10 +31,10 @@ class User(Base):
     __tablename__ = "users"
     __allow_unmapped__ = True
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    guild_id = Column(Integer, index=True)
-    user_id = Column(Integer, index=True)
-    iq = Column(Integer)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    guild_id: Mapped[int] = mapped_column(index=True)
+    user_id: Mapped[int] = mapped_column(index=True)
+    iq: Mapped[Optional[int]] = mapped_column(default=100)
 
     def __init__(self, guild_id, user_id, iq: Optional[int] = 100) -> None:
         self.guild_id = guild_id
@@ -49,21 +57,23 @@ class Bet(Base):
     __tablename__ = "bets"
     __allow_unmapped__ = True
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    timestamp = Column(DateTime, default=datetime.now())
-    user_id_1 = Column(Integer, index=True)
-    user_id_2 = Column(Integer, index=True)
-    bet = Column(Integer)
-    is_open = Column(Boolean, default=True)
-    winner = Column(Integer, nullable=True)
+    message_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    timestamp: Mapped[datetime] = mapped_column(default_factory=datetime.now)
+    user_id_1: Mapped[int] = mapped_column(index=True)
+    user_id_2: Mapped[int] = mapped_column(index=True)
+    bet: Mapped[int]
+    is_open: Mapped[bool] = mapped_column(default=True)
+    winner: Mapped[Optional[int]] = mapped_column(nullable=True)
 
     def __init__(
         self,
+        message_id: int,
+        timestamp: datetime,
         user_id_1: int,
         user_id_2: int,
         bet: int,
-        timestamp: Optional[datetime] = datetime.now(),
     ) -> None:
+        self.message_id = message_id
         self.timestamp = timestamp
         self.user_id_1 = user_id_1
         self.user_id_2 = user_id_2
@@ -76,6 +86,8 @@ class Bet(Base):
 
     def to_dict(self) -> dict:
         return {
+            "id": self.id,
+            "message_id": self.message_id,
             "timestamp": self.timestamp,
             "user_id_1": self.user_id_1,
             "user_id_2": self.user_id_2,
@@ -155,6 +167,38 @@ async def read_or_add_users(guild_id: int, user_ids: list[int]) -> list[User]:
 
 
 @db_logger
+async def upsert_user_iq(guild_id: int, user_id: int, iq: int) -> User:
+    async with get_session() as session:
+        stmt = select(User).where(User.user_id == user_id, User.guild_id == guild_id)
+        result = await session.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if user:
+            user.iq = iq
+        else:
+            user = User(user_id=user_id, guild_id=guild_id, iq=iq)
+            session.add(user)
+
+        await session.commit()
+    return user
+
+
+@db_logger
+async def remove_user(guild_id: int, user_id: int) -> None:
+    async with get_session() as session:
+        stmt = select(User).where(User.user_id == user_id, User.guild_id == guild_id)
+        result = await session.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if user:
+            await session.delete(user)
+            await session.commit()
+            logger.info(f"User {user} removed from the database")
+        else:
+            logger.warning(f"User {user_id} not found in the database")
+
+
+@db_logger
 async def add_bet(bet: Bet) -> None:
     async with get_session() as session:
         session.add(bet)
@@ -170,6 +214,15 @@ async def read_user_bets(user_id: int) -> Sequence[Bet]:
         result = await session.execute(stmt)
         bets = result.scalars().all()
     return bets
+
+
+@db_logger
+async def read_bet(message_id) -> Optional[Bet]:
+    async with get_session() as session:
+        stmt = select(Bet).where(Bet.message_id == message_id)
+        result = await session.execute(stmt)
+        bet = result.scalar_one_or_none()
+    return bet
 
 
 async def async_main():
