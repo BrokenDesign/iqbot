@@ -40,12 +40,7 @@ class User(Base):
         return pformat(self.to_dict())
 
     def to_dict(self) -> dict:
-        return {
-            "id": self.id,
-            "guild_id": self.guild_id,
-            "user_id": self.user_id,
-            "iq": self.iq,
-        }
+        return self.__dict__
 
 
 class Bet(Base):
@@ -64,16 +59,7 @@ class Bet(Base):
         return pformat(self.to_dict())
 
     def to_dict(self) -> dict:
-        return {
-            "id": self.id,
-            "message_id": self.message_id,
-            "timestamp": self.timestamp,
-            "user_id_1": self.user_id_1,
-            "user_id_2": self.user_id_2,
-            "bet": self.bet,
-            "is_open": self.is_open,
-            "winner": self.winner,
-        }
+        return self.__dict__
 
 
 def db_logger(func):

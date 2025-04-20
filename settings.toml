@@ -18,6 +18,7 @@ id = 477506746986921992
 guilds = true
 messages = true
 message_content = true
+reactions = true
 
 [[bot.whitelist]]
 guild = 1361882687895371838

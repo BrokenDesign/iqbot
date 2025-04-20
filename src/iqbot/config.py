@@ -28,6 +28,7 @@ class IntentsSettings(BaseModel):
     guilds: bool
     messages: bool
     message_content: bool
+    reactions: bool
 
 
 class WhitelistEntry(BaseModel):
@@ -79,7 +80,7 @@ def deep_merge(base: dict, override: dict) -> dict:
 
 def load_settings() -> Settings:
     base_config = load_toml(Path("settings.toml"))
-    if Path(".secrets").exists():
+    if Path(".secrets.toml").exists():
         secrets_config = load_toml(Path(".secrets.toml"))
         merged = deep_merge(base_config, secrets_config)
     else:

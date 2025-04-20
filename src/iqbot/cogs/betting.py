@@ -55,13 +55,13 @@ class Betting(commands.Cog):
                         f"GPT response did not match either user: {gpt_response} not in ({user1.display_name}, {user2.display_name})"
                     )
                     await reaction.message.channel.send(
-                        f"**Error: GPT response did not match either user. {reaction.message.url}**"
+                        f"**Error: GPT response did not match either user. {reaction.message.jump_url}**"
                     )
                 await session.commit()
         except Exception as e:
             logger.error(f"Error in on_reaction_add: {e}")
             await reaction.message.channel.send(
-                f"**Error occurred while processing the bet. {reaction.message.url}**"
+                f"**Error occurred while processing the bet. {reaction.message.jump_url}**"
             )
 
     async def decline_bet(self, reaction, user, bet):
@@ -76,11 +76,12 @@ class Betting(commands.Cog):
         except Exception as e:
             logger.error(f"Error in on_reaction_add: {e}")
             await reaction.message.channel.send(
-                f"**Error occurred while processing the bet. {reaction.message.url}**"
+                f"**Error occurred while processing the bet. {reaction.message.jump_url}**"
             )
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
+        logger.info(f"Reaction added: {reaction.emoji} by {user.name}")
         if user.bot:
             return
 
@@ -119,14 +120,17 @@ class Betting(commands.Cog):
         response = await ctx.respond(
             f"{member.mention} you have been challenged by {ctx.author.mention} to bet {bet_amount} IQ.\n\n DO YOU ACCEPT? OR ARE YOU A PUSSY??",
         )
-        await response.message.add_reaction("✅")
-        await response.message.add_reaction("❌")
+
+        message = await response.original_response()
+
+        await message.add_reaction("✅")
+        await message.add_reaction("❌")
 
         async with db.get_session() as session:
             bet = Bet(
-                message_id=response.message.id,
-                timestamp=ctx.message.created_at,
-                user_id_1=ctx.author.id,
+                message_id=message.id,
+                timestamp=message.created_at,
+                user_id_1=message.author.id,
                 user_id_2=member.id,
                 bet=bet_amount,
             )
