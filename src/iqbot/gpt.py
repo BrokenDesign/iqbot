@@ -2,7 +2,7 @@ from datetime import timedelta
 from enum import Enum
 from typing import Optional
 
-from discord import Message
+from discord import Message, Reaction
 from discord.ext.commands import Context
 from loguru import logger
 from openai import OpenAI
@@ -30,9 +30,9 @@ class ChatMessage:
         return self.__dict__
 
 
-async def read_context(ctx: Context) -> str:
+async def read_context(ctx: Context | Reaction) -> str:
     messages = []
-    async for message in ctx.channel.history(
+    async for message in ctx.message.channel.history(
         before=ctx.message.created_at,
         after=ctx.message.created_at - timedelta(minutes=settings.gpt.history.minutes),
         limit=settings.gpt.history.messages,
@@ -60,7 +60,7 @@ async def build_prompt(conversation: str, command_prompt: str) -> list[ChatMessa
     return messages
 
 
-async def send_prompt(ctx: Context, command_prompt: str) -> str:
+async def send_prompt(ctx: Context | Reaction, command_prompt: str) -> str:
     conversation = await read_context(ctx)
     if not conversation:
         logger.warning("No conversation history found.")

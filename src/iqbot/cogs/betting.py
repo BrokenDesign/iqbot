@@ -58,6 +58,7 @@ class Betting(commands.Cog):
                         f"**Error: GPT response did not match either user. {reaction.message.jump_url}**"
                     )
                 await session.commit()
+                await reaction.message.channel.send(gpt_response)
         except Exception as e:
             logger.error(f"Error in on_reaction_add: {e}")
             await reaction.message.channel.send(
@@ -130,7 +131,7 @@ class Betting(commands.Cog):
             bet = Bet(
                 message_id=message.id,
                 timestamp=message.created_at,
-                user_id_1=message.author.id,
+                user_id_1=ctx.author.id,
                 user_id_2=member.id,
                 bet=bet_amount,
             )
