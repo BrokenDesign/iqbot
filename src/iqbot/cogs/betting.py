@@ -87,6 +87,7 @@ class Betting(commands.Cog):
             return
 
         elif reaction.emoji not in ["✅", "❌"]:
+            await reaction.message.remove_reaction(reaction.emoji, user)
             return
 
         bet = await db.read_bet(reaction.message.id)
