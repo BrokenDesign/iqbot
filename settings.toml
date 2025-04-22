@@ -32,7 +32,7 @@ roles = []
 
 [gpt]
 model = "gpt-4o"
-max_tokens = 100
+max_tokens = 500
 
 [gpt.history]
 minutes = 30

@@ -46,7 +46,7 @@ class User(Base):
 class Bet(Base):
     __tablename__ = "bets"
     __allow_unmapped__ = True
-
+    guild_id: Mapped[int] = mapped_column(index=True)
     message_id: Mapped[int] = mapped_column(primary_key=True, index=True)
     timestamp: Mapped[datetime] = mapped_column(default=lambda: datetime.now())
     user_id_1: Mapped[int] = mapped_column(index=True)

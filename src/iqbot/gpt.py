@@ -69,7 +69,7 @@ async def build_prompt(conversation: str, command_prompt: str) -> list[ChatMessa
             "do not take statements to be inherently true and evaluate their validity yourself, give a verdict on which side is more correct in relation to the topic, "
             "also evaluate the effectiveness of their argument"
             "You should refer to users with the exact unicode characters provided in the conversation. "
-            "When asked for a winner you should respond with the name of the winner as the first word of your response. "
+            "When asked for a winner you should respond in the format of '**Winner: <user|draw>**' "
             "You should only pick a winner if asked for one."
             f"Please limit your responses to {settings.gpt.max_tokens} tokens.",
         ),

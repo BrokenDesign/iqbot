@@ -6,8 +6,7 @@ from discord.ext.commands import Context
 from loguru import logger
 
 from iqbot import db, gpt
-from iqbot.checks import bot_manager
-from iqbot.config import settings
+from iqbot.checks import bot_manager, bot_owner
 
 
 class Owner(commands.Cog):
@@ -49,16 +48,6 @@ class Owner(commands.Cog):
             await ctx.respond(f"Failed to remove {member.name} from the IQ database")
 
     @commands.check(bot_manager)
-    @commands.slash_command(name="question", description="asks a generic question")
-    async def question(self, ctx, question: str):
-        try:
-            response = await gpt.send_prompt(ctx, question)
-            await ctx.respond(response)
-        except Exception as e:
-            logger.error(f"Error in question command: {e}")
-            await ctx.respond("Failed to get a response from GPT")
-
-    @commands.check(bot_manager)
     @commands.slash_command(name="dump", description="prints last 15 lines of messages")
     async def dump(self, ctx, num_messages: int):
         try:
@@ -67,6 +56,28 @@ class Owner(commands.Cog):
         except Exception as e:
             logger.error(f"Error in dump command: {e}")
             await ctx.respond("Failed to get the conversation history")
+
+    @commands.check(bot_owner)
+    @commands.command(
+        name="question", description="Asks a question to GPT with current context"
+    )
+    async def question(self, ctx, question: str):
+        try:
+            response = await gpt.send_prompt(ctx, question)
+            await ctx.channel.send(response)
+        except Exception as e:
+            logger.error(f"Error in question command: {e}")
+            await ctx.channel.send("Failed to get a response from GPT")
+
+    @commands.check(bot_owner)
+    @commands.command(name="reset", description="full reset of the databases")
+    async def reset(self, ctx):
+        try:
+            await db.async_main()
+            await ctx.channel.send("Database reset complete")
+        except Exception as e:
+            logger.error(f"Error in question command: {e}")
+            await ctx.channel.send("Failed to get a response from GPT")
 
 
 def setup(bot):

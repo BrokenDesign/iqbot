@@ -3,19 +3,15 @@ import re
 from datetime import datetime, timedelta
 from pprint import pformat
 
-import discord
-from discord import Member, Message
+from discord import Member
 from discord.ext import commands, tasks
-from discord.ext.commands import Bot, Context
-from icecream import ic
+from discord.ext.commands import Bot
 from loguru import logger
 from openai import OpenAI
 from sqlalchemy import select
 
 from iqbot import db, gpt
-from iqbot.checks import bot_manager
-from iqbot.config import settings
-from iqbot.db import Bet, User
+from iqbot.db import Bet
 
 
 class Betting(commands.Cog):
@@ -24,7 +20,6 @@ class Betting(commands.Cog):
     whitelist: dict[int, int]
 
     def __init__(self, bot: Bot, **kwargs):
-        self.client = OpenAI(api_key=settings.tokens.gpt)
         self.bot = bot
 
     @tasks.loop(minutes=1)
@@ -41,18 +36,30 @@ class Betting(commands.Cog):
             async with db.get_session() as session:
                 bet = await session.merge(bet)
                 bet.is_open = False
-                user1 = await reaction.message.guild.fetch_member(bet.user_id_1)
-                user2 = await reaction.message.guild.fetch_member(bet.user_id_2)
-                prompt = f"Who won the argument, {user1.display_name} or {user2.display_name}?"
+                member1 = await reaction.message.guild.fetch_member(bet.user_id_1)
+                member2 = await reaction.message.guild.fetch_member(bet.user_id_2)
+                user1 = await db.read_or_add_user(bet.guild_id, bet.user_id_1)
+                user2 = await db.read_or_add_user(bet.guild_id, bet.user_id_2)
+                prompt = f"Who won the argument, {member1.display_name} or {member2.display_name}?"
                 gpt_response = await gpt.send_prompt(reaction, prompt)
-                winner = gpt_response.split()[0]
-                if winner == user1.display_name:
+                match = re.search(r"(?<=winner:\s).+", gpt_response.lower())
+                if match is not None:
+                    winner = match.group(0).strip()
+                else:
+                    winner = "error"
+                if winner == member1.display_name:
                     bet.winner = bet.user_id_1
-                elif winner == user2.display_name:
+                    user1.iq += bet.bet
+                    user2.iq -= bet.bet
+                elif winner == member2.display_name:
                     bet.winner = bet.user_id_2
+                    user1.iq -= bet.bet
+                    user2.iq += bet.bet
+                elif winner.lower() == "draw":
+                    await session.delete(bet)
                 else:
                     logger.error(
-                        f"GPT response did not match either user: {gpt_response} not in ({user1.display_name}, {user2.display_name})"
+                        f"GPT response did not match either user: {gpt_response} not in ({member1.display_name}, {member2.display_name})"
                     )
                     await reaction.message.channel.send(
                         f"**Error: GPT response did not match either user. {reaction.message.jump_url}**"
@@ -69,7 +76,7 @@ class Betting(commands.Cog):
         try:
             async with db.get_session() as session:
                 bet = await session.merge(bet)
-                bet.is_open = False
+                await session.delete(bet)
                 await session.commit()
                 await reaction.message.channel.send(
                     f"**{user.mention} has declined the bet of {bet.bet} IQ against {reaction.message.author.mention}.**"
@@ -130,6 +137,7 @@ class Betting(commands.Cog):
 
         async with db.get_session() as session:
             bet = Bet(
+                guild_id=ctx.guild.id,
                 message_id=message.id,
                 timestamp=message.created_at,
                 user_id_1=ctx.author.id,
