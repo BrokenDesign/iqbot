@@ -9,7 +9,7 @@ pool_timeout = 30
 [bot]
 prefix = "."
 temp_dir = "."
-cogs = ["owner", "misc", "betting"]
+cogs = ["owner", "misc", "betting", "iq"]
 
 [bot.owner]
 id = 477506746986921992

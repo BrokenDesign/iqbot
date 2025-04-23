@@ -40,7 +40,7 @@ async def read_current_context(ctx: Context) -> str:
     ):
         if message.author.bot:
             continue
-        messages.append(f"{message.author.display_name}: {message.content}")
+        messages.append(f"{message.author.name}: {message.content}")
 
     return "\n".join(messages[::-1])
 
@@ -56,7 +56,7 @@ async def read_reaction_context(reaction: Reaction) -> str:
     ):
         if message.author.bot:
             continue
-        messages.append(f"{message.author.display_name}: {message.content}")
+        messages.append(f"{message.author.name}: {message.content}")
 
     return "\n".join(messages[::-1])
 

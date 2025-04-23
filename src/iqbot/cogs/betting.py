@@ -27,8 +27,9 @@ class Betting(commands.Cog):
         async with db.get_session() as session:
             open_bets = await session.execute(select(Bet).where(Bet.is_open == True))
             for bet in open_bets.scalars().all():
-                if datetime.now() - bet.timestamp > timedelta(minutes=10):
-                    bet.is_open = False
+                if datetime.now() - bet.timestamp > timedelta(minutes=1):
+                    logger.info(f"Deleting bet {bet.message_id} after 10 minutes")
+                    await session.delete(bet)
             await session.commit()
 
     async def accept_bet(self, reaction, user, bet):
@@ -40,33 +41,51 @@ class Betting(commands.Cog):
                 member2 = await reaction.message.guild.fetch_member(bet.user_id_2)
                 user1 = await db.read_or_add_user(bet.guild_id, bet.user_id_1)
                 user2 = await db.read_or_add_user(bet.guild_id, bet.user_id_2)
-                prompt = f"Who won the argument, {member1.display_name} or {member2.display_name}?"
+                prompt = f"Who won the argument, {member1.name} or {member2.name}?"
                 gpt_response = await gpt.send_prompt(reaction, prompt)
-                match = re.search(r"(?<=winner:\s).+", gpt_response.lower())
+                match = re.search(r"(?<=winner:\s).+(?=\*\*)", gpt_response.lower())
+                logger.info("GPT response: " + gpt_response)
+                logger.info("Match: " + str(match))
+                gpt_response = gpt_response.replace(member1.name, member1.display_name)
+                gpt_response = gpt_response.replace(member2.name, member2.display_name)
                 if match is not None:
                     winner = match.group(0).strip()
                 else:
                     winner = "error"
-                if winner == member1.display_name:
+                if winner == member1.name:
+                    has_winner = True
                     bet.winner = bet.user_id_1
                     user1.iq += bet.bet
                     user2.iq -= bet.bet
-                elif winner == member2.display_name:
+                    await session.commit()
+                elif winner == member2.name:
+                    has_winner = True
                     bet.winner = bet.user_id_2
                     user1.iq -= bet.bet
                     user2.iq += bet.bet
+                    await session.commit()
                 elif winner.lower() == "draw":
                     await session.delete(bet)
+                    await session.commit()
                 else:
+                    await session.delete(bet)
+                    await session.commit()
                     logger.error(
-                        f"GPT response did not match either user: {gpt_response} not in ({member1.display_name}, {member2.display_name})"
+                        f"GPT response did not match either user: {winner} not in ({member1.display_name}, {member2.display_name}, draw)"
                     )
                     await reaction.message.channel.send(
                         f"**Error: GPT response did not match either user. {reaction.message.jump_url}**"
                     )
-                await session.commit()
-                await reaction.message.channel.send(gpt_response)
+                    return
+                await reaction.message.channel.send(gpt_response[0:1999])
+                if has_winner:
+                    await reaction.message.channel.send(
+                        f"{member1.mention} **IQ -> {user1.iq}**\n{member2.mention} **IQ -> {user2.iq}**"
+                    )
+
         except Exception as e:
+            await session.delete(bet)
+            await session.commit()
             logger.error(f"Error in on_reaction_add: {e}")
             await reaction.message.channel.send(
                 f"**Error occurred while processing the bet. {reaction.message.jump_url}**"
@@ -79,7 +98,7 @@ class Betting(commands.Cog):
                 await session.delete(bet)
                 await session.commit()
                 await reaction.message.channel.send(
-                    f"**{user.mention} has declined the bet of {bet.bet} IQ against {reaction.message.author.mention}.**"
+                    f"**{user.mention} has declined the bet of {bet.bet} IQ against {reaction.message.mentions[1].mention}.**"
                 )
         except Exception as e:
             logger.error(f"Error in on_reaction_add: {e}")
@@ -91,6 +110,9 @@ class Betting(commands.Cog):
     async def on_reaction_add(self, reaction, user):
         logger.info(f"Reaction added: {reaction.emoji} by {user.name}")
         if user.bot:
+            return
+
+        if reaction.message.author != self.bot.user:
             return
 
         elif reaction.emoji not in ["✅", "❌"]:

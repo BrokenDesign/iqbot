@@ -149,6 +149,28 @@ async def upsert_user_iq(guild_id: int, user_id: int, iq: int) -> User:
 
 
 @db_logger
+async def read_head_tail_iqs(
+    guild_id: int, limit: int = 5
+) -> tuple[Sequence[User], Sequence[User]]:
+    async with get_session() as session:
+        top_result = await session.execute(
+            select(User).order_by(User.iq.desc()).limit(limit)
+        )
+        top_users = top_result.scalars().all()
+
+        bottom_result = await session.execute(
+            select(User).order_by(User.iq.asc()).limit(limit)
+        )
+        bottom_users = bottom_result.scalars().all()
+        bottom_users = set(bottom_users) - set(top_users)
+        bottom_users = sorted(
+            bottom_users, key=lambda x: x.iq if x.iq is not None else -1, reverse=True
+        )
+
+    return top_users, bottom_users
+
+
+@db_logger
 async def remove_user(guild_id: int, user_id: int) -> None:
     async with get_session() as session:
         stmt = select(User).where(User.user_id == user_id, User.guild_id == guild_id)
