@@ -38,23 +38,35 @@ class Betting(commands.Cog):
                 has_winner = False
                 bet = await session.merge(bet)
                 bet.is_open = False
+
                 member1 = await reaction.message.guild.fetch_member(bet.user_id_1)
                 member2 = await reaction.message.guild.fetch_member(bet.user_id_2)
-                user1 = await db.read_or_add_user(bet.guild_id, bet.user_id_1)
-                user2 = await db.read_or_add_user(bet.guild_id, bet.user_id_2)
-                await session.merge(user1)
-                await session.merge(user2)
+
+                user1 = await session.merge(
+                    db.read_or_add_user(bet.guild_id, bet.user_id_1)
+                )
+                user2 = await session.merge(
+                    db.read_or_add_user(bet.guild_id, bet.user_id_2)
+                )
+
+                assert isinstance(user1, db.User)
+                assert isinstance(user2, db.User)
+
                 prompt = f"Who won the argument, {member1.name} or {member2.name}?"
                 gpt_response = await gpt.send_prompt(reaction, prompt)
                 match = re.search(r"(?<=winner:\s).+(?=\*\*)", gpt_response.lower())
+
                 logger.info("GPT response: " + gpt_response)
                 logger.info("Match: " + str(match))
+
                 gpt_response = gpt_response.replace(member1.name, member1.display_name)
                 gpt_response = gpt_response.replace(member2.name, member2.display_name)
+
                 if match is not None:
                     winner = match.group(0).strip()
                 else:
                     winner = "error"
+
                 if winner == member1.name:
                     has_winner = True
                     bet.winner = bet.user_id_1
