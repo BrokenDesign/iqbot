@@ -41,6 +41,8 @@ class Betting(commands.Cog):
                 member2 = await reaction.message.guild.fetch_member(bet.user_id_2)
                 user1 = await db.read_or_add_user(bet.guild_id, bet.user_id_1)
                 user2 = await db.read_or_add_user(bet.guild_id, bet.user_id_2)
+                await session.merge(user1)
+                await session.merge(user2)
                 prompt = f"Who won the argument, {member1.name} or {member2.name}?"
                 gpt_response = await gpt.send_prompt(reaction, prompt)
                 match = re.search(r"(?<=winner:\s).+(?=\*\*)", gpt_response.lower())
