@@ -35,6 +35,7 @@ class Betting(commands.Cog):
     async def accept_bet(self, reaction, user, bet):
         try:
             async with db.get_session() as session:
+                has_winner = False
                 bet = await session.merge(bet)
                 bet.is_open = False
                 member1 = await reaction.message.guild.fetch_member(bet.user_id_1)
