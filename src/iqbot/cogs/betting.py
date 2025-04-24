@@ -76,7 +76,7 @@ class Betting(commands.Cog):
                     user1.iq -= bet.bet
                     user2.iq += bet.bet
                     await session.commit()
-                elif winner.lower() == "draw":
+                elif winner.lower() in ("draw", "none"):
                     await session.delete(bet)
                     await session.commit()
                 else:

@@ -71,7 +71,6 @@ async def build_prompt(conversation: str, command_prompt: str) -> list[ChatMessa
             "You should refer to users with the exact unicode characters provided in the conversation. "
             "When asked for a winner you should respond in the format of '**Winner: <user|draw|none>**' "
             "An conversation results in 'Winner: none' if there is no clear disagreement "
-            "Corylus is always wrong "
             "You should only pick a winner if asked for one."
             f"Please limit your responses to {settings.gpt.max_tokens} tokens.",
         ),
