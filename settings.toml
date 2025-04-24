@@ -32,8 +32,13 @@ roles = []
 
 [gpt]
 model = "gpt-4o"
-max_tokens = 500
+max_tokens = 450
 
 [gpt.history]
 minutes = 30
 messages = 100
+
+[elo]
+k = 32
+max_delta = 50
+scale = 400

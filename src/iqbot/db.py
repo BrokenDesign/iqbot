@@ -51,7 +51,6 @@ class Bet(Base):
     timestamp: Mapped[datetime] = mapped_column(default=lambda: datetime.now())
     user_id_1: Mapped[int] = mapped_column(index=True)
     user_id_2: Mapped[int] = mapped_column(index=True)
-    bet: Mapped[int]
     is_open: Mapped[bool] = mapped_column(default=True)
     winner: Mapped[Optional[int]] = mapped_column(nullable=True)
 

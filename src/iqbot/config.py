@@ -57,10 +57,17 @@ class GptSettings(BaseModel):
     history: GptHistorySettings
 
 
+class EloSettings(BaseModel):
+    k: int
+    scale: int
+    max_delta: int
+
+
 class Settings(BaseSettings):
     database: DatabaseSettings
     bot: BotSettings
     gpt: GptSettings
+    elo: EloSettings
     tokens: Tokens
 
 
