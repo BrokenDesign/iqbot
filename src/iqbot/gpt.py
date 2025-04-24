@@ -70,9 +70,9 @@ async def build_prompt(conversation: str, command_prompt: str) -> list[ChatMessa
             "When asked for a winner play the role of a fair judge and evaluate the arguments made by two sides. "
             "Evaluate arguments for validity, soundness, consistency, and rhetorical effectiveness. "
             "You should refer to users with the exact unicode characters provided in the conversation. "
-            "When asked for a winner you should respond in the format of '**Winner: <user|draw|none>**' "
+            "When asked for a winner you should respond in the format of '**Winner: <user|draw|none>**'."
             "An conversation results in 'Winner: none' if there is no clear disagreement "
-            f"Please limit your responses to {settings.gpt.max_tokens} words.",
+            f"Please limit your responses to no more than 2000 characters.",
         ),
         ChatMessage(
             role=Role.USER,

@@ -124,7 +124,7 @@ class Betting(commands.Cog):
                 await session.delete(bet)
                 await session.commit()
                 await reaction.message.channel.send(
-                    f"**{user.mention} has declined the bet of {bet.bet} IQ against {reaction.message.mentions[1].mention}.**"
+                    f"**{user.mention} has declined the bet against {reaction.message.mentions[1].mention}.**"
                 )
         except Exception as e:
             logger.error(f"Error in on_reaction_add: {e}")
