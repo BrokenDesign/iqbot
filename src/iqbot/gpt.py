@@ -74,13 +74,15 @@ async def read_current_context(ctx: Context) -> str:
         if message.author.bot:
             continue
 
-        message_tokens = count_tokens(format_message(message))
+        formatted_message = format_message(message)
+        message_tokens = count_tokens(formatted_message)
+
         if context_tokens - message_tokens < 0:
             logger.warning("Not enough tokens available for the message.")
             break
 
         context_tokens -= message_tokens
-        messages.append(format_message(message))
+        messages.append(formatted_message)
 
     return "\n".join(messages[::-1])
 
@@ -98,13 +100,15 @@ async def read_reaction_context(reaction: Reaction) -> str:
         if message.author.bot:
             continue
 
-        message_tokens = count_tokens(format_message(message))
+        formatted_message = format_message(message)
+        message_tokens = count_tokens(formatted_message)
+
         if context_tokens - message_tokens < 0:
             logger.warning("Not enough tokens available for the message.")
             break
 
         context_tokens -= message_tokens
-        messages.append(format_message(message))
+        messages.append(formatted_message)
 
     return "\n".join(messages[::-1])
 
