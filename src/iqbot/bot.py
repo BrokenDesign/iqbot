@@ -29,6 +29,18 @@ for cog in settings.bot.cogs:
 @bot.event
 async def on_ready():
     logger.info(f"{bot.user.name} ready and raring to go")
+    authorized_guilds = {entry.guild for entry in settings.bot.whitelist}
+    for guild in bot.guilds:
+        if guild.id not in authorized_guilds:
+            logger.info(f"Leaving unauthorized guild: {guild.name} ({guild.id})")
+            await guild.leave()
+
+
+@bot.event
+async def on_guild_join(guild):
+    if guild.id not in {entry.guild for entry in settings.bot.whitelist}:
+        logger.info(f"Auto-leaving unauthorized guild: {guild.name} ({guild.id})")
+        await guild.leave()
 
 
 logger.info("Logging in...")
