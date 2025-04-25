@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Optional
 
+import tiktoken
 from discord import Message, Reaction
 from discord.ext.commands import Context
 from loguru import logger
@@ -10,6 +11,21 @@ from openai import OpenAI
 from iqbot.config import settings
 
 client = OpenAI(api_key=settings.tokens.gpt)
+
+
+def count_tokens(input: str) -> int:
+    encoding = tiktoken.encoding_for_model(settings.gpt.model)
+    return len(encoding.encode(input))
+
+
+def available_tokens(input: str) -> int:
+    return (
+        settings.gpt.tokens.limit
+        - settings.gpt.tokens.overhead_max
+        - settings.gpt.tokens.prompt_max
+        - settings.gpt.tokens.output_max
+        - count_tokens(input)
+    )
 
 
 class Role(str, Enum):
@@ -30,8 +46,25 @@ class ChatMessage:
         return self.__dict__
 
 
+def format_message(message: Message) -> str:
+    reply_id = None
+    if (
+        message.reference
+        and message.reference.resolved
+        and isinstance(message.reference.resolved, Message)
+    ):
+        reply_id = message.reference.resolved.id
+    id = message.id
+    author = message.author.name
+    if not reply_id:
+        return f"[ID: {id} | {author}]: {message.content}"
+    else:
+        return f"[ID: {id} | {author} replying to {reply_id}]: {message.content}"
+
+
 async def read_current_context(ctx: Context) -> str:
     messages = []
+    context_tokens = available_tokens("")
     async for message in ctx.channel.history(
         before=datetime.now(),
         after=datetime.now() - timedelta(minutes=settings.gpt.history.minutes),
@@ -40,13 +73,21 @@ async def read_current_context(ctx: Context) -> str:
     ):
         if message.author.bot:
             continue
-        messages.append(f"{message.author.name}: {message.content}")
+
+        message_tokens = count_tokens(format_message(message))
+        if context_tokens - message_tokens < 0:
+            logger.warning("Not enough tokens available for the message.")
+            break
+
+        context_tokens -= message_tokens
+        messages.append(format_message(message))
 
     return "\n".join(messages[::-1])
 
 
 async def read_reaction_context(reaction: Reaction) -> str:
     messages = []
+    context_tokens = available_tokens("")
     async for message in reaction.message.channel.history(
         before=reaction.message.created_at,
         after=reaction.message.created_at
@@ -56,23 +97,24 @@ async def read_reaction_context(reaction: Reaction) -> str:
     ):
         if message.author.bot:
             continue
-        messages.append(f"{message.author.name}: {message.content}")
+
+        message_tokens = count_tokens(format_message(message))
+        if context_tokens - message_tokens < 0:
+            logger.warning("Not enough tokens available for the message.")
+            break
+
+        context_tokens -= message_tokens
+        messages.append(format_message(message))
 
     return "\n".join(messages[::-1])
 
 
 async def build_prompt(conversation: str, command_prompt: str) -> list[ChatMessage]:
+    assert count_tokens(command_prompt) < 100
     messages = [
         ChatMessage(
             role=Role.SYSTEM,
-            content="Answer questions within the context of a provided conversation. "
-            "The conversation is a series of messages between users in chronological order. "
-            "When asked for a winner play the role of a fair judge and evaluate the arguments made by two sides. "
-            "Evaluate arguments for validity, soundness, consistency, and rhetorical effectiveness. "
-            "You should refer to users with the exact unicode characters provided in the conversation. "
-            "When asked for a winner you should respond in the format of '**Winner: <user|draw|none>**'."
-            "An conversation results in 'Winner: none' if there is no clear disagreement "
-            f"Please limit your responses to no more than 2000 characters.",
+            content=settings.gpt.system_prompt.strip(),
         ),
         ChatMessage(
             role=Role.USER,
@@ -97,7 +139,7 @@ async def send_prompt(ctx: Context | Reaction, command_prompt: str) -> str:
         response = client.chat.completions.create(
             model=settings.gpt.model,
             messages=[message.to_dict() for message in messages],  # type: ignore
-            max_tokens=settings.gpt.max_tokens,
+            max_tokens=settings.gpt.tokens.output_max,
         )
         logger.info(f"GPT response: {response.choices[0].message.content}")
         return (
@@ -110,3 +152,8 @@ async def send_prompt(ctx: Context | Reaction, command_prompt: str) -> str:
         return (
             "An error occurred while processing your request. Please try again later."
         )
+
+
+if __name__ == "__main__":
+    logger.info(f"System prompt length:{count_tokens(settings.gpt.system_prompt)}")
+    logger.info(f"Max output tokens: {settings.gpt.tokens.output_max}")

@@ -51,9 +51,17 @@ class GptHistorySettings(BaseModel):
     messages: int
 
 
+class GptTokenSettings(BaseModel):
+    limit: int
+    overhead_max: int
+    output_max: int
+    prompt_max: int
+
+
 class GptSettings(BaseModel):
     model: str
-    max_tokens: int
+    system_prompt: str
+    tokens: GptTokenSettings
     history: GptHistorySettings
 
 
