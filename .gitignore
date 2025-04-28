@@ -1,4 +1,4 @@
-
+conversation*
 .vscode
 logs
 # Ignore dynaconf secret files

@@ -1,6 +1,9 @@
+import os
+import tempfile
 from datetime import datetime, timedelta
+from typing import Optional
 
-from discord import Member
+from discord import File, Member
 from discord.ext import commands
 from discord.ext.commands import Context
 from loguru import logger
@@ -14,6 +17,30 @@ class Owner(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+
+    def parse_message_link(self, message_link: str):
+        try:
+            parts = message_link.split("/")
+            channel_id = int(parts[-2])
+            message_id = int(parts[-1])
+            return channel_id, message_id
+        except (ValueError, IndexError) as e:
+            logger.error(f"Error parsing message link: {e}")
+            return None, None
+
+    async def respond_with_file(self, ctx: Context, content: str) -> None:
+        out = tempfile.NamedTemporaryFile(
+            dir=".", prefix="conversation.", suffix=".txt", delete=False
+        )
+        out.write(content.encode("utf-8"))
+        out.flush()
+        try:
+            file = File(out.name, filename="conversation.txt")
+            await ctx.respond(file=file)  # type: ignore
+        except Exception as err:
+            print(err)
+        finally:
+            out.close()
 
     @commands.check(bot_manager)
     @commands.slash_command(name="add", description="adds user to the IQ database")
@@ -48,14 +75,48 @@ class Owner(commands.Cog):
             await ctx.respond(f"Failed to remove {member.name} from the IQ database")
 
     @commands.check(bot_manager)
-    @commands.slash_command(name="dump", description="prints last 15 lines of messages")
-    async def dump(self, ctx, num_messages: int):
-        try:
-            conversation = await gpt.read_current_context(ctx)
-            await ctx.respond("\n".join(conversation.split("\n")[-num_messages:]))
-        except Exception as e:
-            logger.error(f"Error in dump command: {e}")
-            await ctx.respond("Failed to get the conversation history")
+    @commands.slash_command(name="dump", description="Outputs the last N messages")
+    async def dump(self, ctx, num_messages: int, message_link: Optional[str]):
+        message = None
+
+        if message_link is not None:
+            try:
+                channel_id, message_id = self.parse_message_link(message_link)
+                if channel_id is None or message_id is None:
+                    await ctx.respond("Invalid message link format")
+                    return
+
+                message = await ctx.guild.get_channel(channel_id).fetch_message(
+                    message_id
+                )
+                if message is None:
+                    await ctx.respond("Message not found")
+                    return
+
+                conversation = await gpt.read_message_context(message)
+                if num_messages < conversation.count("\n"):
+                    conversation = "\n".join(conversation.split("\n")[-num_messages:])
+                if len(conversation) >= 2000:
+                    await self.respond_with_file(ctx, conversation)
+                else:
+                    await ctx.respond(conversation)
+            except Exception as e:
+                logger.error(f"Error in dump command: {e}")
+                await ctx.respond("Failed to get the conversation history")
+            return
+
+        else:
+            try:
+                conversation = await gpt.read_current_context(ctx)
+                if num_messages < conversation.count("\n"):
+                    conversation = "\n".join(conversation.split("\n")[-num_messages:])
+                    if len(conversation) >= 2000:
+                        await self.respond_with_file(ctx, conversation)
+                    else:
+                        await ctx.respond(conversation)
+            except Exception as e:
+                logger.error(f"Error in dump command: {e}")
+                await ctx.respond("Failed to get the conversation history")
 
     @commands.check(bot_owner)
     @commands.command(

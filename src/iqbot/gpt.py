@@ -87,6 +87,31 @@ async def read_current_context(ctx: Context) -> str:
     return "\n".join(messages[::-1])
 
 
+async def read_message_context(msg: Message) -> str:
+    messages = []
+    context_tokens = available_tokens("")
+    async for message in msg.channel.history(
+        before=msg.created_at,
+        after=msg.created_at - timedelta(minutes=settings.gpt.history.minutes),
+        limit=settings.gpt.history.messages,
+        oldest_first=False,
+    ):
+        if message.author.bot:
+            continue
+
+        formatted_message = format_message(message)
+        message_tokens = count_tokens(formatted_message)
+
+        if context_tokens - message_tokens < 0:
+            logger.warning("Not enough tokens available for the message.")
+            break
+
+        context_tokens -= message_tokens
+        messages.append(formatted_message)
+
+    return "\n".join(messages[::-1])
+
+
 async def read_reaction_context(reaction: Reaction) -> str:
     messages = []
     context_tokens = available_tokens("")
