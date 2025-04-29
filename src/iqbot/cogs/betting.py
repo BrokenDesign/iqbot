@@ -10,6 +10,7 @@ from loguru import logger
 from sqlalchemy import select
 
 from iqbot import db, gpt
+from iqbot.checks import bot_manager
 from iqbot.config import settings
 from iqbot.db import Bet, User
 
@@ -191,6 +192,38 @@ class Betting(commands.Cog):
             session.add(bet)
             await session.commit()
             logger.info(f"Bet added to DB: {bet}")
+
+    @commands.check(bot_manager)
+    @commands.command(
+        name="evaluate", description="Evaluates a debate against a given debate topic"
+    )
+    async def evaluate(self, ctx, member1: Member, member2: Member, *, topic: str):
+        if member1 == member2:
+            await ctx.channel.send("You cannot evaluate a bet between the same user!")
+            return
+
+        try:
+            prompt = f"Evaluate the debate between {member1.name} and {member2.name} on the topic: {topic}. Include the topic in the response."
+            gpt_response = await gpt.send_prompt(ctx, prompt)
+            match = re.search(r"(?<=winner:\s).+(?=\*\*)", gpt_response.lower())
+
+            winner = match.group(0).strip() if match is not None else "error"
+            result = self.resolve_winner(member1, member2, winner)
+
+            if result in (BetResult.USER1, BetResult.USER2, BetResult.DRAW):
+                async with db.get_session() as session:
+                    user1 = await db.read_or_add_user(ctx.guild.id, member1.id)
+                    user2 = await db.read_or_add_user(ctx.guild.id, member2.id)
+                    user1, user2 = await self.update_elo(user1, user2, result)
+                    user1 = await session.merge(user1)
+                    user2 = await session.merge(user2)
+                    await session.commit()
+
+            await ctx.channel.send(gpt_response[0:1999])
+
+        except Exception as e:
+            logger.error(f"Error in evaluate command: {e}")
+            await ctx.channel.send(f"**Error occurred while evaluating debate.**")
 
 
 def setup(bot: commands.Bot):

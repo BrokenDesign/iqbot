@@ -28,6 +28,7 @@ for cog in settings.bot.cogs:
 
 @bot.event
 async def on_ready():
+    await bot.wait_until_ready()
     logger.info(f"{bot.user.name} ready and raring to go")
     authorized_guilds = {entry.guild for entry in settings.bot.whitelist}
     for guild in bot.guilds:
@@ -35,8 +36,8 @@ async def on_ready():
             logger.info(f"Leaving unauthorized guild: {guild.name} ({guild.id})")
             await guild.leave()
 
-    synced = await bot.tree.sync()
-    logger.info(f"Synced {len(synced)} commands")
+    await bot.sync_commands(guild_ids=authorized_guilds)
+    logger.info("Commands synced with authorized guilds")
 
 
 @bot.event

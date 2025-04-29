@@ -67,8 +67,8 @@ prompt_max = 100
 output_max = 400
 
 [gpt.history]
-minutes = 30
-messages = 100
+minutes = 120
+messages = 200
 
 
 [elo]
