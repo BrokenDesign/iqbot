@@ -68,9 +68,10 @@ class Betting(commands.Cog):
     @tasks.loop(minutes=1)
     async def bet_timer(self) -> None:
         async with db.get_session() as session:
-            open_bets = await session.execute(select(Bet).where(Bet.is_open == True))
-            for bet in open_bets.scalars().all():
-                if datetime.now() - bet.timestamp > timedelta(minutes=1):
+            result = await session.execute(select(Bet).where(Bet.is_open == True))
+            bets = result.scalars()
+            for bet in bets:
+                if datetime.now() - bet.timestamp > timedelta(minutes=10):
                     logger.info(f"Deleting bet {bet.message_id} after 10 minutes")
                     await session.delete(bet)
             await session.commit()
