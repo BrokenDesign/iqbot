@@ -1,9 +1,6 @@
-# type: ignore
-
 import random
 
 from discord.ext import commands
-from discord.ext.commands import Context
 from loguru import logger
 
 from iqbot.checks import bot_manager
@@ -21,6 +18,12 @@ class Misc(commands.Cog):
             await ctx.respond(f"Pong! ```latency = {round(self.bot.latency, 1)}ms```")
         except Exception as e:
             logger.error(f"Error in ping command: {e}")
+
+    @commands.slash_command(name="topic", description="sends a debate topic")
+    async def topic(self, ctx):
+        with open("debate_topics.txt", "r") as f:
+            topics = f.readlines()
+            await ctx.respond(random.choice(topics).strip())
 
 
 def setup(bot):

@@ -35,6 +35,9 @@ async def on_ready():
             logger.info(f"Leaving unauthorized guild: {guild.name} ({guild.id})")
             await guild.leave()
 
+    synced = await bot.tree.sync()
+    logger.info(f"Synced {len(synced)} commands")
+
 
 @bot.event
 async def on_guild_join(guild):
