@@ -27,10 +27,15 @@ guild = 1361882687895371838
 channel = 1361882688709198077
 roles = []
 
-# [[bot.whitelist]]
-# guild = 789692030741774368
-# channel = 978273836338413648
-# roles = []
+[[bot.whitelist]]
+guild = 789692030741774368
+channel = 978273836338413648
+roles = []
+
+[[bot.whitelist]]
+guild = 418288362747592704
+channel = 1179128812341047427
+roles = []
 
 [gpt]
 model = "gpt-4o"
