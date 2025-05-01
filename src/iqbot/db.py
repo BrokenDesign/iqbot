@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from functools import wraps
 from pprint import pformat
-from typing import Optional, Sequence
+from typing import AsyncIterator, Optional, Sequence
 
 from loguru import logger
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -35,6 +35,8 @@ class User(Base):
     guild_id: Mapped[int] = mapped_column(index=True)
     user_id: Mapped[int] = mapped_column(index=True)
     iq: Mapped[Optional[int]] = mapped_column(default=100)
+    num_bets: Mapped[int] = mapped_column(default=0)
+    is_present: Mapped[bool] = mapped_column(default=True)
 
     def __repr__(self):
         return pformat(self.to_dict())
@@ -51,8 +53,6 @@ class Bet(Base):
     timestamp: Mapped[datetime] = mapped_column(default=lambda: datetime.now())
     user_id_1: Mapped[int] = mapped_column(index=True)
     user_id_2: Mapped[int] = mapped_column(index=True)
-    is_open: Mapped[bool] = mapped_column(default=True)
-    winner: Mapped[Optional[int]] = mapped_column(nullable=True)
 
     def __repr__(self):
         return pformat(self.to_dict())
@@ -80,8 +80,8 @@ def db_logger(func):
 @asynccontextmanager
 async def get_session():
     async with async_session() as session:
-        async with session.begin():
-            yield session
+        # async with session.begin():
+        yield session
 
 
 @db_logger
@@ -147,26 +147,22 @@ async def upsert_user_iq(guild_id: int, user_id: int, iq: int) -> User:
     return user
 
 
-@db_logger
-async def read_head_tail_iqs(
-    guild_id: int, limit: int = 5
-) -> tuple[Sequence[User], Sequence[User]]:
+async def read_top_iqs(guild_id: int) -> AsyncIterator[User]:
     async with get_session() as session:
-        top_result = await session.execute(
-            select(User).order_by(User.iq.desc()).limit(limit)
-        )
-        top_users = top_result.scalars().all()
+        stmt = select(User).where(User.guild_id == guild_id)
+        stmt = stmt.order_by(User.iq.desc())
+        result = await session.stream(stmt)
+        async for user in result.scalars():
+            yield user
 
-        bottom_result = await session.execute(
-            select(User).order_by(User.iq.asc()).limit(limit)
-        )
-        bottom_users = bottom_result.scalars().all()
-        bottom_users = set(bottom_users) - set(top_users)
-        bottom_users = sorted(
-            bottom_users, key=lambda x: x.iq if x.iq is not None else -1, reverse=True
-        )
 
-    return top_users, bottom_users
+async def read_bottom_iqs(guild_id: int) -> AsyncIterator[User]:
+    async with get_session() as session:
+        stmt = select(User).where(User.guild_id == guild_id)
+        stmt = stmt.order_by(User.iq.asc())
+        result = await session.stream(stmt)
+        async for user in result.scalars():
+            yield user
 
 
 @db_logger

@@ -18,6 +18,8 @@ class DatabaseSettings(BaseModel):
     max_overflow: int
     pool_recycle: int
     pool_timeout: int
+    backup_dir: str
+    retention: int
 
 
 class OwnerSettings(BaseModel):
@@ -66,7 +68,6 @@ class GptSettings(BaseModel):
 
 
 class EloSettings(BaseModel):
-    k: int
     scale: int
     max_delta: int
 

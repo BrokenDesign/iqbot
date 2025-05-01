@@ -2,6 +2,7 @@ import datetime
 import re
 from datetime import datetime, timedelta
 from enum import Enum
+from math import sqrt
 
 from discord import Member
 from discord.ext import commands, tasks
@@ -10,7 +11,7 @@ from loguru import logger
 from sqlalchemy import select
 
 from iqbot import db, gpt
-from iqbot.checks import bot_manager
+from iqbot.checks import bot_manager, bot_owner
 from iqbot.config import settings
 from iqbot.db import Bet, User
 
@@ -30,6 +31,7 @@ class Betting(commands.Cog):
 
     def __init__(self, bot: Bot, **kwargs):
         self.bot = bot
+        self.bet_timer.start()
 
     def resolve_winner(
         self, member1: Member, member2: Member, winner: str
@@ -41,6 +43,12 @@ class Betting(commands.Cog):
             "none": BetResult.NONE,
         }
         return winner_map.get(winner.lower(), BetResult.ERROR)
+
+    def calculate_k(self, user: User) -> float:
+        assert user.iq is not None
+        deviation = abs(user.iq - 100)
+        base_k = max(6, 16 - (deviation / 10))
+        return max(base_k / sqrt(max(user.num_bets, 1)), 1)
 
     async def update_elo(
         self, user1: User, user2: User, result: BetResult
@@ -54,8 +62,8 @@ class Betting(commands.Cog):
         expected1 = 1 / (1 + 10 ** ((user2.iq - user1.iq) / settings.elo.scale))
         expected2 = 1 - expected1
 
-        delta1 = settings.elo.k * (result.value - expected1)
-        delta2 = settings.elo.k * ((1 - result.value) - expected2)
+        delta1 = self.calculate_k(user1) * (result.value - expected1)
+        delta2 = self.calculate_k(user2) * ((1 - result.value) - expected2)
 
         delta1 = max(min(delta1, settings.elo.max_delta), -settings.elo.max_delta)
         delta2 = max(min(delta2, settings.elo.max_delta), -settings.elo.max_delta)
@@ -63,18 +71,25 @@ class Betting(commands.Cog):
         user1.iq = round(user1.iq + delta1)
         user2.iq = round(user2.iq + delta2)
 
+        user1.num_bets += 1
+        user2.num_bets += 1
+
         return user1, user2
 
     @tasks.loop(minutes=1)
     async def bet_timer(self) -> None:
         async with db.get_session() as session:
-            result = await session.execute(select(Bet).where(Bet.is_open == True))
+            result = await session.execute(select(Bet))
             bets = result.scalars()
             for bet in bets:
                 if datetime.now() - bet.timestamp > timedelta(minutes=10):
                     logger.info(f"Deleting bet {bet.message_id} after 10 minutes")
                     await session.delete(bet)
             await session.commit()
+
+    @bet_timer.before_loop
+    async def before_backup_task(self):
+        await self.bot.wait_until_ready()
 
     async def accept_bet(self, reaction, bet) -> None:
         try:
@@ -108,7 +123,7 @@ class Betting(commands.Cog):
 
                 await reaction.message.channel.send(gpt_response[0:1999])
                 await reaction.message.channel.send(
-                    f"{member1.mention} **IQ {start_iq1} -> {user1.iq}**\n{member2.mention} **IQ {start_iq2} -> {user2.iq}**"
+                    f"**Winner: {member1.display_name}\n{member1.mention} **IQ {start_iq1} -> {user1.iq}**\n{member2.mention} **IQ {start_iq2} -> {user2.iq}**"
                 )
 
         except Exception as e:
@@ -136,14 +151,14 @@ class Betting(commands.Cog):
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
-        logger.info(f"Reaction added: {reaction.emoji} by {user.name}")
         if user.bot:
             return
 
         if reaction.message.author != self.bot.user:
             return
 
-        elif reaction.emoji not in ["✅", "❌"]:
+        if reaction.emoji not in ["✅", "❌"]:
+            logger.info(f"Reaction added: {reaction.emoji} by {user.name}")
             await reaction.message.remove_reaction(reaction.emoji, user)
             return
 
@@ -225,6 +240,40 @@ class Betting(commands.Cog):
         except Exception as e:
             logger.error(f"Error in evaluate command: {e}")
             await ctx.channel.send(f"**Error occurred while evaluating debate.**")
+
+    @commands.check(bot_owner)
+    @commands.slash_command(
+        name="result", description="Adds a result between two users"
+    )
+    async def result(self, ctx, member1: Member, member2: Member, winner: Member):
+        if member1 == winner:
+            result = BetResult.USER1
+        elif member2 == winner:
+            result = BetResult.USER2
+        else:
+            await ctx.respond(
+                "Invalid winner. Please specify either member1 or member2 as the winner."
+            )
+            return
+
+        if result in (BetResult.USER1, BetResult.USER2):
+            try:
+                async with db.get_session() as session:
+                    user1 = await db.read_or_add_user(ctx.guild.id, member1.id)
+                    user2 = await db.read_or_add_user(ctx.guild.id, member2.id)
+                    start_iq1 = user1.iq
+                    start_iq2 = user2.iq
+                    user1, user2 = await self.update_elo(user1, user2, result)
+                    user1 = await session.merge(user1)
+                    user2 = await session.merge(user2)
+                    await session.commit()
+                    await ctx.respond(
+                        f"{member1.mention} **IQ {start_iq1} -> {user1.iq}**\n{member2.mention} **IQ {start_iq2} -> {user2.iq}**"
+                    )
+                    return
+            except Exception as e:
+                logger.error(f"Error in result command: {e}")
+                await ctx.respond(f"**Error occurred while processing the result.**")
 
 
 def setup(bot: commands.Bot):

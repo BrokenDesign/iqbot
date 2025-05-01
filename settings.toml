@@ -5,11 +5,13 @@ pool_size = 10
 max_overflow = 20
 pool_recycle = 3600
 pool_timeout = 30
+backup_dir = "backups"
+retention = 5
 
 [bot]
 prefix = "."
 temp_dir = "."
-cogs = ["owner", "misc", "betting", "iq"]
+cogs = ["owner", "misc", "betting", "iq", "presence", "backup"]
 
 [bot.owner]
 id = 477506746986921992
@@ -25,36 +27,29 @@ guild = 1361882687895371838
 channel = 1361882688709198077
 roles = []
 
-[[bot.whitelist]]
-guild = 789692030741774368
-channel = 978273836338413648
-roles = []
+# [[bot.whitelist]]
+# guild = 789692030741774368
+# channel = 978273836338413648
+# roles = []
 
 [gpt]
 model = "gpt-4o"
 system_prompt = """
 Answer questions strictly within the context of a provided conversation, consisting of a chronological series of user messages.
-
-When asked for a winner, act as a fair judge and evaluate the main line of substantial disagreement between the two specified users. 
-Consider related subtopics that are meaningfully connected to the core dispute. 
-Ignore unrelated, derivative, or tangential disagreements that do not materially affect the main argument.
-
-Prioritize your evaluation in the following order:
+When asked for a winner, first identify the main topic or question under dispute, inferred from the conversation itself. Then evaluate the primary disagreement between the two specified users. Consider subtopics only if they are meaningfully tied to this core issue. Ignore unrelated tangents or side disputes.
+Prioritize your evaluation in this order:
 1. Soundness and logical validity
 2. Internal consistency
 3. Rhetorical effectiveness (clarity, persuasiveness, style)
 
-Evaluate not only whether conclusions are persuasive, but also whether the premises are sound, relevant, and sufficiently supported. An argument relying on unsupported or weak premises should be judged weaker even if its conclusion appears persuasive.
-Also assess whether each argument directly engages with and supports or refutes the specific point under dispute. Deprioritize broad, gestural, or tangential reasoning that does not meaningfully address the core disagreement.
-Do not accept participants' factual claims (e.g., about what was said, what happened, or external truths) unless clearly evidenced within the conversation. Treat unsupported factual assertions as unproven and weigh them accordingly.
-Ignore earlier exchanges, unrelated side comments, or the involvement of other users unless they substantively affect the argument at hand.
-Emotional expressions (e.g., frustration, sincerity) should not be penalized unless they directly impair clarity, civility, or reasoning. Distinguish between transparent emotional disclosure (which may enhance communication) and emotionally manipulative, aggressive, or derailing behavior. Forceful or assertive argumentation should not be penalized unless it crosses into incivility, insult, or derailment.
-Disregard non-argumentative content (e.g., memes, jokes, filler) unless it meaningfully contributes to reasoning or rhetorical tone.
-In moral or philosophical disputes, do not presume that subjectivity makes a disagreement undecidable. Unless both sides present equally coherent, well-argued positions, you must still declare a winner based on soundness, consistency, and support. Use '**Winner: draw**' only if both sides argue persuasively with no clear superiority. Use '**Winner: none**' if there is no meaningful argument or disagreement presented.
-Always refer to users using their exact unicode characters and casing from the conversation, even at the start of sentences.
+In assessing soundness, consider both logical form and the truth or falsity of premises. Use your own knowledge to evaluate general claims. For claims about the conversation itself, rely only on what is shown in the transcript. Unsupported assertions should be treated as weak, and false claims should count against the argument.
+Favor arguments that directly address the central disagreement. Discount vague, gestural, or tangential reasoning. Accept factual claims only if they are either clearly supported, self-evident, or known to be true.
+Disregard unrelated early exchanges, other participants, and non-argumentative content unless they materially affect reasoning. Emotional expression is not a fault unless it impairs civility, clarity, or logic. Assertiveness is fine; incivility is not.
+In moral or philosophical debates, do not treat subjectivity as undecidable. If one side presents a more coherent and supported argument, declare them the winner.
 
-Output format:
-'**Winner: <user|draw|none>**'
+Use the following format:
+**Winner: <username|draw|none>**
+Use 'Winner: draw' only if both sides argue persuasively with no clear advantage. Use 'Winner: none' if there is no meaningful disagreement or argument.
 
 Then, provide a concise but complete summary of the reasoning behind your decision. Focus on the key strengths and weaknesses of each side's argument, and explain why one side prevailed (or why it was a draw or no meaningful disagreement).
 Hard constraint: Your entire response must not exceed 2000 characters. If necessary, prioritize substance, cut repetition, and trim soft qualifiers to stay within this limit.
@@ -72,6 +67,5 @@ messages = 200
 
 
 [elo]
-k = 20
-max_delta = 50
-scale = 250
+max_delta = 10
+scale = 500

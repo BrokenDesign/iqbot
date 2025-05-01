@@ -119,26 +119,28 @@ class Owner(commands.Cog):
                 await ctx.respond("Failed to get the conversation history")
 
     @commands.check(bot_owner)
-    @commands.command(
+    @commands.slash_command(
         name="question", description="Asks a question to GPT with current context"
     )
     async def question(self, ctx, question: str):
         try:
+            await ctx.defer()
             response = await gpt.send_prompt(ctx, question)
-            await ctx.channel.send(response)
+            await ctx.respond(response)
         except Exception as e:
             logger.error(f"Error in question command: {e}")
-            await ctx.channel.send("Failed to get a response from GPT")
+            await ctx.respond("Failed to get a response from GPT")
 
     @commands.check(bot_owner)
-    @commands.command(name="reset", description="full reset of the databases")
+    @commands.slash_command(name="reset", description="full reset of the databases")
     async def reset(self, ctx):
         try:
+            await ctx.defer(ephemeral=True)
             await db.async_main()
-            await ctx.channel.send("Database reset complete")
+            await ctx.respond("Database reset complete")
         except Exception as e:
             logger.error(f"Error in question command: {e}")
-            await ctx.channel.send("Failed to get a response from GPT")
+            await ctx.respond("Failed to get a response from GPT")
 
 
 def setup(bot):

@@ -29,7 +29,6 @@ for cog in settings.bot.cogs:
 @bot.event
 async def on_ready():
     await bot.wait_until_ready()
-    logger.info(f"{bot.user.name} ready and raring to go")
     authorized_guilds = {entry.guild for entry in settings.bot.whitelist}
     for guild in bot.guilds:
         if guild.id not in authorized_guilds:
@@ -38,6 +37,7 @@ async def on_ready():
 
     await bot.sync_commands(guild_ids=authorized_guilds)
     logger.info("Commands synced with authorized guilds")
+    logger.info(f"{bot.user.name} ready and raring to go")
 
 
 @bot.event
