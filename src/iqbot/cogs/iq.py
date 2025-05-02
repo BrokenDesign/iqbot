@@ -160,7 +160,7 @@ class IQ(commands.Cog):
 
             if bottom_users:
                 message += "\n## Bottom IQs\n"
-                for name, iq in bottom_users.values():
+                for name, iq in sorted(bottom_users.values(), key=lambda x: x[1]):
                     message += f"- {name}: {iq} IQ\n"
 
             await ctx.respond(message)
