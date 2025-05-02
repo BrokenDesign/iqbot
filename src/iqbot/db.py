@@ -150,7 +150,7 @@ async def upsert_user_iq(guild_id: int, user_id: int, iq: int) -> User:
 async def read_top_iqs(guild_id: int) -> AsyncIterator[User]:
     async with get_session() as session:
         stmt = select(User).where(User.guild_id == guild_id)
-        stmt = stmt.order_by(User.iq.desc())
+        stmt = stmt.order_by(User.iq.desc(), User.user_id.asc())
         result = await session.stream(stmt)
         async for user in result.scalars():
             yield user
@@ -159,7 +159,7 @@ async def read_top_iqs(guild_id: int) -> AsyncIterator[User]:
 async def read_bottom_iqs(guild_id: int) -> AsyncIterator[User]:
     async with get_session() as session:
         stmt = select(User).where(User.guild_id == guild_id)
-        stmt = stmt.order_by(User.iq.asc())
+        stmt = stmt.order_by(User.iq.asc(), User.user_id.asc())
         result = await session.stream(stmt)
         async for user in result.scalars():
             yield user
