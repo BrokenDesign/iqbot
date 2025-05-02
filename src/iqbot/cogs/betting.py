@@ -125,7 +125,7 @@ class Betting(commands.Cog):
 
                 await reaction.message.channel.send(gpt_response[0:1999])
                 await reaction.message.channel.send(
-                    f"**Winner: {member1.display_name}\n{member1.mention} **IQ {start_iq1} -> {user1.iq}**\n{member2.mention} **IQ {start_iq2} -> {user2.iq}**"
+                    f"{member1.display_name}\n{member1.mention} **IQ {start_iq1} -> {user1.iq}**\n{member2.mention} **IQ {start_iq2} -> {user2.iq}**"
                 )
 
         except Exception as e:
