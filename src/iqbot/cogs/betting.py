@@ -3,8 +3,10 @@ import re
 from datetime import datetime, timedelta
 from enum import Enum
 from math import sqrt
+from typing import Any
 
-from discord import Member
+from discord import ApplicationContext, Member
+from discord.commands import Option
 from discord.ext import commands, tasks
 from discord.ext.commands import Bot
 from loguru import logger
@@ -76,7 +78,7 @@ class Betting(commands.Cog):
 
         return user1, user2
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(minutes=30)
     async def bet_timer(self) -> None:
         async with db.get_session() as session:
             result = await session.execute(select(Bet))
@@ -180,7 +182,7 @@ class Betting(commands.Cog):
             return
 
     @commands.slash_command(name="bet", description="Initiates a bet between two users")
-    async def bet(self, ctx, member: Member):
+    async def bet(self, ctx: ApplicationContext, member: Member):
         if ctx.author == member:
             await ctx.respond("You cannot bet against yourself!!")
             return
@@ -188,11 +190,11 @@ class Betting(commands.Cog):
             await ctx.respond("You cannot bet against the bot!!")
             return
 
-        response = await ctx.respond(
+        await ctx.respond(
             f"{member.mention} you have been challenged by {ctx.author.mention} to bet IQ.\n\n DO YOU ACCEPT? OR ARE YOU A PUSSY??",
         )
 
-        message = await response.original_response()
+        message = await ctx.interaction.original_response()
 
         await message.add_reaction("✅")
         await message.add_reaction("❌")
@@ -209,11 +211,14 @@ class Betting(commands.Cog):
             await session.commit()
             logger.info(f"Bet added to DB: {bet}")
 
-    @commands.check(bot_manager)
     @commands.command(
-        name="evaluate", description="Evaluates a debate against a given debate topic"
+        name="evaluate",
+        description="Evaluates a debate against a given debate topic (admin only)",
     )
-    async def evaluate(self, ctx, member1: Member, member2: Member, *, topic: str):
+    @commands.check(bot_manager)
+    async def evaluate(
+        self, ctx: ApplicationContext, member1: Member, member2: Member, *, topic: str
+    ):
         if member1 == member2:
             await ctx.channel.send("You cannot evaluate a bet between the same user!")
             return
@@ -240,40 +245,6 @@ class Betting(commands.Cog):
         except Exception as e:
             logger.error(f"Error in evaluate command: {e}")
             await ctx.channel.send(f"**Error occurred while evaluating debate.**")
-
-    @commands.check(bot_owner)
-    @commands.slash_command(
-        name="result", description="Adds a result between two users"
-    )
-    async def result(self, ctx, member1: Member, member2: Member, winner: Member):
-        if member1 == winner:
-            result = BetResult.USER1
-        elif member2 == winner:
-            result = BetResult.USER2
-        else:
-            await ctx.respond(
-                "Invalid winner. Please specify either member1 or member2 as the winner."
-            )
-            return
-
-        if result in (BetResult.USER1, BetResult.USER2):
-            try:
-                async with db.get_session() as session:
-                    user1 = await db.read_or_add_user(ctx.guild.id, member1.id)
-                    user2 = await db.read_or_add_user(ctx.guild.id, member2.id)
-                    start_iq1 = user1.iq
-                    start_iq2 = user2.iq
-                    user1, user2 = await self.update_elo(user1, user2, result)
-                    user1 = await session.merge(user1)
-                    user2 = await session.merge(user2)
-                    await session.commit()
-                    await ctx.respond(
-                        f"{member1.mention} **IQ {start_iq1} -> {user1.iq}**\n{member2.mention} **IQ {start_iq2} -> {user2.iq}**"
-                    )
-                    return
-            except Exception as e:
-                logger.error(f"Error in result command: {e}")
-                await ctx.respond(f"**Error occurred while processing the result.**")
 
 
 def setup(bot: commands.Bot):

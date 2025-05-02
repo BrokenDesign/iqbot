@@ -15,52 +15,76 @@ class IQ(commands.Cog):
         self.bot = bot
 
     def iq_comment(self, iq: int) -> str:
-        if iq < 0:
+        if iq < 50:
             return random.choice(
                 [
-                    f"{iq} IQ? That's not an IQ, that's a cry for help.",
-                    f"{iq} IQ? You're operating at a cognitive overdraft.",
-                    f"{iq} IQ? Congratulations, you've looped back around and invented anti-thought.",
-                    f"{iq} IQ? That's less IQ and more like an intellectual black hole.",
-                    f"{iq} IQ? Negative IQ? Are you thinking *in reverse*?",
-                    f"{iq} IQ? Your brain waves are being sued for defamation by static.",
-                    f"{iq} IQ? You're so unintelligent, reality itself is confused.",
-                    f"{iq} IQ? You may have discovered the theoretical limit of dumb.",
+                    f"{iq} IQ? You're legally required to have adult supervision online.",
+                    f"{iq} IQ? That's not an IQ, that's a body temperature.",
+                    f"{iq} IQ? Your neurons are on strike.",
                 ]
             )
-        elif iq < 50:
-            return f"{iq} IQ? You might be legally required to wear a helmet to use a keyboard."
         elif iq < 70:
-            return f"{iq} IQ? Ah, the intellectual horsepower of a garden gnome."
-        elif iq < 90:
-            return (
-                f"{iq} IQ? Room temperature in Fahrenheit. Respectable. For a potato."
+            return random.choice(
+                [
+                    f"{iq} IQ? Impressive—for a garden gnome.",
+                    f"{iq} IQ? You're running on potato logic.",
+                    f"{iq} IQ? Somehow both underclocked and overheating.",
+                ]
+            )
+        elif iq < 85:
+            return random.choice(
+                [
+                    f"{iq} IQ? Room temperature in Fahrenheit. Ambitious!",
+                    f"{iq} IQ? If common sense were currency, you'd be in debt.",
+                    f"{iq} IQ? Not dumb, just *retro* thinking.",
+                ]
             )
         elif iq < 100:
-            return f"{iq} IQ? The lights are on, but they're flickering."
-        elif iq < 110:
-            return f"{iq} IQ? Decent! Not a genius, but you can probably operate a microwave without supervision."
-        elif iq < 130:
-            return f"{iq} IQ? You'd win pub quizzes, but probably still get scammed by an email prince."
-        elif iq < 150:
-            return (
-                f"{iq} IQ? Impressive. Do you use that brain for good, or just memes?"
+            return random.choice(
+                [
+                    f"{iq} IQ? Average—like lukewarm tea and grey wallpaper.",
+                    f"{iq} IQ? You're the human equivalent of buffering.",
+                    f"{iq} IQ? Mid. In every possible way.",
+                ]
             )
-        elif iq < 200:
-            return f"{iq} IQ? You're not thinking outside the box. You've **invented** the box."
-        elif iq < 500:
-            return f"{iq} IQ? I assume you're communicating with me via quantum entanglement."
-        elif iq < 1000:
-            return (
-                f"{iq} IQ? At this point you're basically a minor Lovecraftian deity."
+        elif iq < 115:
+            return random.choice(
+                [
+                    f"{iq} IQ? Respectable! You'd survive in a cyberpunk dystopia.",
+                    f"{iq} IQ? Smart enough to argue online, not smart enough to stop.",
+                    f"{iq} IQ? Competent! Just don’t try to rewire the toaster.",
+                ]
+            )
+        elif iq < 130:
+            return random.choice(
+                [
+                    f"{iq} IQ? Pub quiz royalty. Google fears you.",
+                    f"{iq} IQ? You're the reason the curve gets curved.",
+                    f"{iq} IQ? Sharp. Dangerous if pointed at the wrong topic.",
+                ]
+            )
+        elif iq < 145:
+            return random.choice(
+                [
+                    f"{iq} IQ? Genius-tier. You probably have strong opinions about fonts.",
+                    f"{iq} IQ? Smarter than you act online, that's for sure.",
+                    f"{iq} IQ? High-functioning sarcasm generator.",
+                ]
+            )
+        elif iq < 160:
+            return random.choice(
+                [
+                    f"{iq} IQ? Borderline superhuman. Do you even experience loading times?",
+                    f"{iq} IQ? Ideas per minute: lethal.",
+                    f"{iq} IQ? You might be writing this simulation.",
+                ]
             )
         else:
             return random.choice(
                 [
-                    f"{iq} IQ? That's not IQ. That's just raw cosmic hubris.",
-                    f"{iq} IQ? Congratulations, you've ascended beyond comprehension. Please don't vaporize us.",
-                    f"{iq} IQ? Even GPT is feeling insecure now.",
-                    f"{iq} IQ? Legend says your thoughts cause gravitational lensing.",
+                    f"{iq} IQ? Honestly, that’s terrifying.",
+                    f"{iq} IQ? If you're not an alien, you're at least on contract.",
+                    f"{iq} IQ? Go touch grass — for science.",
                 ]
             )
 
