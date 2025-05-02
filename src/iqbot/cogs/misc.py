@@ -19,7 +19,7 @@ class Misc(commands.Cog):
 
     @commands.slash_command(name="topic", description="sends a debate topic")
     async def topic(self, ctx):
-        with open("debate_topics.txt", "r") as f:
+        with open("resources/debate_topics.txt", "r") as f:
             topics = f.readlines()
             await ctx.respond(random.choice(topics).strip())
 
