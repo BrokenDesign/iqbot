@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional
 
 import tiktoken
-from discord import Message, Reaction
+from discord import ApplicationContext, Message, Reaction
 from discord.ext.commands import Context
 from loguru import logger
 from openai import OpenAI
@@ -62,7 +61,7 @@ def format_message(message: Message) -> str:
         return f"[ID: {id} | {author} replying to {reply_id}]: {message.content}"
 
 
-async def read_current_context(ctx: Context) -> str:
+async def read_current_context(ctx: ApplicationContext) -> str:
     messages = []
     context_tokens = available_tokens("")
     async for message in ctx.channel.history(
@@ -153,7 +152,7 @@ async def build_prompt(conversation: str, command_prompt: str) -> list[ChatMessa
     return messages
 
 
-async def send_prompt(ctx: Context | Reaction, command_prompt: str) -> str:
+async def send_prompt(ctx: ApplicationContext | Reaction, command_prompt: str) -> str:
     if isinstance(ctx, Reaction):
         conversation = await read_reaction_context(ctx)
     else:

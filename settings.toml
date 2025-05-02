@@ -11,7 +11,7 @@ retention = 5
 [bot]
 prefix = "."
 temp_dir = "."
-cogs = ["owner", "misc", "betting", "iq", "presence", "backup"]
+cogs = ["owner", "admin", "misc", "betting", "iq", "presence", "backup"]
 
 [bot.owner]
 id = 477506746986921992

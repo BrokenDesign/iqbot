@@ -4,9 +4,11 @@ import os
 import re
 import shutil
 from datetime import datetime, timedelta
+from typing import Any
 from urllib.parse import urlparse
 
 import discord
+from discord.commands import Option, SlashCommandGroup
 from discord.ext import commands, tasks
 from loguru import logger
 
@@ -35,12 +37,10 @@ def remove_old_backups():
     for backup in os.listdir(settings.database.backup_dir):
         try:
             match = re.search(r"^backup_(\d+_\d+)\.sqlite3\.gz$", backup)
-            if match:
-                ts = match.group(1)
-            else:
+            if not match:
                 logger.warning(f"Failed to match timestamp in filename: {backup}")
                 continue
-            dt = datetime.strptime(ts, "%Y%m%d_%H%M%S")
+            dt = datetime.strptime(match.group(1), "%Y%m%d_%H%M%S")
             if (now - dt) > timedelta(days=settings.database.retention):
                 os.remove(os.path.join(settings.database.backup_dir, backup))
                 logger.info(f"Deleted old backup: {backup}")
@@ -74,21 +74,10 @@ class Backup(commands.Cog):
         self.backup_task.cancel()
         logger.info("Backup cog unloaded and task cancelled.")
 
-    @tasks.loop(hours=24)
-    async def backup_task(self):
-        try:
-            name = create_backup()
-            logger.info(f"Daily backup created: {name}")
-        except Exception as e:
-            logger.error(f"Scheduled backup failed: {e}")
+    backup = SlashCommandGroup("backup", "Backup management commands")
 
-    @backup_task.before_loop
-    async def before_backup_task(self):
-        await self.bot.wait_until_ready()
-        await asyncio.sleep(24 * 60 * 60)
-
+    @backup.command(name="save", description="Create a backup now")
     @commands.check(bot_owner)
-    @commands.slash_command(name="backup_save", description="Create a backup now")
     async def backup_save(self, ctx: discord.ApplicationContext):
         await ctx.defer(ephemeral=True)
         try:
@@ -98,10 +87,8 @@ class Backup(commands.Cog):
             logger.error(f"Manual backup failed: {e}")
             await ctx.respond(f"Failed to create backup: {e}", ephemeral=True)
 
+    @backup.command(name="list", description="List all available backups")
     @commands.check(bot_owner)
-    @commands.slash_command(
-        name="backup_list", description="List all available backups"
-    )
     async def backup_list(self, ctx: discord.ApplicationContext):
         await ctx.defer(ephemeral=True)
         try:
@@ -118,19 +105,14 @@ class Backup(commands.Cog):
             logger.error(f"Failed to list backups: {e}")
             await ctx.respond(f"Error listing backups: {e}", ephemeral=True)
 
+    @backup.command(name="restore", description="Restore a backup by name")
     @commands.check(bot_owner)
-    @commands.slash_command(
-        name="backup_restore", description="Restore a backup by name"
-    )
-    @discord.option(
-        "filename",
-        description="Backup file to restore",
-        autocomplete=get_backup_choices,
-    )
     async def backup_restore(
         self,
         ctx: discord.ApplicationContext,
-        filename: str,
+        filename: Any = Option(
+            str, "Backup file to restore", autocomplete=get_backup_choices
+        ),
     ):
         await ctx.defer(ephemeral=True)
         path = os.path.join(settings.database.backup_dir, filename)
@@ -152,17 +134,14 @@ class Backup(commands.Cog):
             logger.error(f"Restore failed for `{filename}`: {e}")
             await ctx.respond(f"Failed to restore backup: {e}", ephemeral=True)
 
+    @backup.command(name="remove", description="Delete a backup by name")
     @commands.check(bot_owner)
-    @commands.slash_command(name="backup_remove", description="Delete a backup by name")
-    @discord.option(
-        "filename",
-        description="Backup file to delete",
-        autocomplete=get_backup_choices,
-    )
     async def backup_remove(
         self,
         ctx: discord.ApplicationContext,
-        filename: str,
+        filename: Any = Option(
+            str, "Backup file to delete", autocomplete=get_backup_choices
+        ),
     ):
         await ctx.defer(ephemeral=True)
         path = os.path.join(settings.database.backup_dir, filename)
@@ -179,6 +158,19 @@ class Backup(commands.Cog):
         except Exception as e:
             logger.error(f"Failed to delete backup `{filename}`: {e}")
             await ctx.respond(f"Failed to delete backup: {e}", ephemeral=True)
+
+    @tasks.loop(hours=24)
+    async def backup_task(self):
+        try:
+            name = create_backup()
+            logger.info(f"Daily backup created: {name}")
+        except Exception as e:
+            logger.error(f"Scheduled backup failed: {e}")
+
+    @backup_task.before_loop
+    async def before_backup_task(self):
+        await self.bot.wait_until_ready()
+        await asyncio.sleep(24 * 60 * 60)
 
 
 def setup(bot):

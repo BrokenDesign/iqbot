@@ -3,8 +3,6 @@ import random
 from discord.ext import commands
 from loguru import logger
 
-from iqbot.checks import bot_manager
-
 
 class Misc(commands.Cog):
     bot: commands.Bot
