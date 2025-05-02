@@ -1,7 +1,8 @@
+import re
 import tempfile
 from typing import Optional
 
-from discord import File
+from discord import ApplicationContext, File, Member
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from discord.ext.commands import Context
@@ -123,6 +124,23 @@ class Owner(commands.Cog):
         except Exception as e:
             logger.error(f"Error in question command: {e}")
             await ctx.respond("Failed to get a response from GPT")
+
+    @owner.command(name="test", description="Gets prompt output from GPT")
+    @commands.check(bot_owner)
+    async def test(
+        self, ctx: ApplicationContext, member1: Member, member2: Member
+    ) -> None:
+        await ctx.defer()
+        try:
+            prompt = f"Who won the argument, {member1.name} or {member2.name}?"
+            gpt_response = await gpt.send_prompt(ctx, prompt)
+            gpt_response = gpt_response.replace(member1.name, member1.display_name)
+            gpt_response = gpt_response.replace(member2.name, member2.display_name)
+            await ctx.respond(gpt_response[0:1999])
+
+        except Exception as e:
+            logger.error(f"Error in on_reaction_add: {e}")
+            await ctx.respond("An error occurred while processing your request.")
 
 
 def setup(bot):
