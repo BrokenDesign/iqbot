@@ -105,7 +105,7 @@ class IQ(commands.Cog):
         except Exception as e:
             logger.error(f"Error in ping command: {e}")
 
-    @commands.slash_command(name="top", description="checks bot latency")
+    @commands.slash_command(name="top", description="Outputs top and bottom IQs")
     async def top(self, ctx):
         await ctx.defer()
         try:
@@ -114,9 +114,10 @@ class IQ(commands.Cog):
 
             async with db.get_session() as session:
                 async for user in db.read_top_iqs(ctx.guild.id):
-                    member = ctx.guild.get_member(user.user_id)
-                    user.is_present = bool(member)
-                    await session.merge(user)
+                    try:
+                        member = await ctx.guild.fetch_member(user.user_id)
+                    except:
+                        member = None
 
                     if member:
                         top_users[member.id] = (member.display_name, user.iq)
@@ -129,9 +130,10 @@ class IQ(commands.Cog):
                         break
 
                 async for user in db.read_bottom_iqs(ctx.guild.id):
-                    member = ctx.guild.get_member(user.user_id)
-                    user.is_present = bool(member)
-                    await session.merge(user)
+                    try:
+                        member = await ctx.guild.fetch_member(user.user_id)
+                    except:
+                        member = None
 
                     if member:
                         if member.id not in top_users:
