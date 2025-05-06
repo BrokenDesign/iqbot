@@ -35,12 +35,12 @@ class Misc(commands.Cog):
         await ctx.defer()
         try:
             system_prompt = (
-                "You are given a conversation in chronological order. "
-                "You will be provided with a prompt naming specific users. "
-                "Provide a steelman summary for each of the users mentioned in the prompt and only those users. "
-                "You should include headings for each user followed by the steelman of their argument. "
-                "Hard constraint: Your entire response must not exceed 2000 characters. "
-                "If necessary, prioritize substance, cut repetition, and trim soft qualifiers to stay within this limit."
+                "You are given a chronological conversation and a prompt listing specific users. "
+                "For each named user, write a steelman summary of their position: reconstruct the strongest, most coherent version of their argument using your own phrasing. "
+                "Do not list what they said or narrate their progression—synthesize and refine their core reasoning into its best form. "
+                "Use headings for each user, followed by their steelman. "
+                "Hard constraint: the entire response must be under 2000 characters. "
+                "To stay within this limit, prioritize substance, remove repetition, and trim soft qualifiers."
             )
             prompt = f"Please summarize the conversation between {member1.name} and {member2.name}. \n\n"
             gpt_response = await gpt.send_prompt(ctx, system_prompt, prompt)
