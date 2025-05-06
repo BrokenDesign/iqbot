@@ -89,7 +89,7 @@ class IQ(commands.Cog):
             )
 
     @commands.slash_command(name="iq", description="checks bot latency")
-    async def ping(self, ctx, member: Optional[Member] = None):
+    async def iq(self, ctx, member: Optional[Member] = None):
         try:
             if member is None:
                 member = ctx.author

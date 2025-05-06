@@ -61,6 +61,44 @@ def format_message(message: Message) -> str:
         return f"[ID: {id} | {author} replying to {reply_id}]: {message.content}"
 
 
+async def read_context(ctx: ApplicationContext | Reaction | Message) -> str:
+    messages = []
+    context_tokens = available_tokens("")
+    if isinstance(ctx, ApplicationContext):
+        reference_time = datetime.now()
+        channel = ctx.channel
+    elif isinstance(ctx, Message):
+        reference_time = ctx.created_at
+        channel = ctx.channel
+    elif isinstance(ctx, Reaction):
+        reference_time = ctx.message.created_at
+        channel = ctx.message.channel
+    else:
+        logger.error("Invalid context type provided.")
+        return ""
+
+    async for message in channel.history(
+        before=datetime.now(),
+        after=datetime.now() - timedelta(minutes=settings.gpt.history.minutes),
+        limit=settings.gpt.history.messages,
+        oldest_first=False,
+    ):
+        if message.author.bot:
+            continue
+
+        formatted_message = format_message(message)
+        message_tokens = count_tokens(formatted_message)
+
+        if context_tokens - message_tokens < 0:
+            logger.warning("Not enough tokens available for the message.")
+            break
+
+        context_tokens -= message_tokens
+        messages.append(formatted_message)
+
+    return "\n".join(messages[::-1])
+
+
 async def read_current_context(ctx: ApplicationContext) -> str:
     messages = []
     context_tokens = available_tokens("")
@@ -137,32 +175,38 @@ async def read_reaction_context(reaction: Reaction) -> str:
     return "\n".join(messages[::-1])
 
 
-async def build_prompt(conversation: str, command_prompt: str) -> list[ChatMessage]:
+async def build_prompt(
+    conversation: str, system_prompt: str, command_prompt: str
+) -> list[ChatMessage]:
     assert count_tokens(command_prompt) < 100
-    messages = [
-        ChatMessage(
-            role=Role.SYSTEM,
-            content=settings.gpt.system_prompt.strip(),
-        ),
+    messages = []
+    if system_prompt:
+        messages.append(
+            ChatMessage(
+                role=Role.SYSTEM,
+                content=system_prompt.strip(),
+            )
+        )
+    messages.append(
         ChatMessage(
             role=Role.USER,
             content=f"Based on the following conversation: \n\n{conversation}\n\n please answer: {command_prompt}.",
-        ),
-    ]
+        )
+    )
     return messages
 
 
-async def send_prompt(ctx: ApplicationContext | Reaction, command_prompt: str) -> str:
-    if isinstance(ctx, Reaction):
-        conversation = await read_reaction_context(ctx)
-    else:
-        conversation = await read_current_context(ctx)
+async def send_prompt(
+    ctx: ApplicationContext | Reaction, system_prompt: str, command_prompt: str
+) -> str:
+
+    conversation = await read_context(ctx)
 
     if not conversation:
         logger.warning("No conversation history found.")
         return "No conversation history available to generate a response."
 
-    messages = await build_prompt(conversation, command_prompt)
+    messages = await build_prompt(conversation, system_prompt, command_prompt)
     try:
         response = client.chat.completions.create(
             model=settings.gpt.model,

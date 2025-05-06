@@ -57,6 +57,7 @@ Use the following format:
 Use 'Winner: draw' only if both sides argue persuasively with no clear advantage. Use 'Winner: none' if there is no meaningful disagreement or argument.
 
 Then, provide a concise but complete summary of the reasoning behind your decision. Focus on the key strengths and weaknesses of each side's argument, and explain why one side prevailed (or why it was a draw or no meaningful disagreement).
+Hard constraint: Refer to users with the exact unicode characters and casing provided even if at the start of sentences. 
 Hard constraint: Your entire response must not exceed 2000 characters. If necessary, prioritize substance, cut repetition, and trim soft qualifiers to stay within this limit.
 """
 

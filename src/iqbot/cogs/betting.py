@@ -108,7 +108,9 @@ class Betting(commands.Cog):
                 start_iq2 = user2.iq
 
                 prompt = f"Who won the argument, {member1.name} or {member2.name}?"
-                gpt_response = await gpt.send_prompt(reaction, prompt)
+                gpt_response = await gpt.send_prompt(
+                    reaction, settings.gpt.system_prompt, prompt
+                )
                 match = re.search(r"(?<=winner:\s).+(?=\*\*)", gpt_response.lower())
 
                 gpt_response = gpt_response.replace(member1.name, member1.display_name)
@@ -225,7 +227,9 @@ class Betting(commands.Cog):
 
         try:
             prompt = f"Evaluate the debate between {member1.name} and {member2.name} on the topic: {topic}. Include the topic in the response."
-            gpt_response = await gpt.send_prompt(ctx, prompt)
+            gpt_response = await gpt.send_prompt(
+                ctx, settings.gpt.system_prompt, prompt
+            )
             match = re.search(r"(?<=winner:\s).+(?=\*\*)", gpt_response.lower())
 
             winner = match.group(0).strip() if match is not None else "error"
