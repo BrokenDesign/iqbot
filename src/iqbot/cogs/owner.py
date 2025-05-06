@@ -97,13 +97,13 @@ class Owner(commands.Cog):
 
         else:
             try:
-                conversation = await gpt.read_current_context(ctx)
+                conversation = await gpt.read_context(ctx)
                 if num_messages < conversation.count("\n"):
                     conversation = "\n".join(conversation.split("\n")[-num_messages:])
-                    if len(conversation) >= 2000:
-                        await self.respond_with_file(ctx, conversation)
-                    else:
-                        await ctx.respond(conversation)
+                if len(conversation) >= 2000:
+                    await self.respond_with_file(ctx, conversation)
+                else:
+                    await ctx.respond(conversation)
             except Exception as e:
                 logger.error(f"Error in dump command: {e}")
                 await ctx.respond("Failed to get the conversation history")
