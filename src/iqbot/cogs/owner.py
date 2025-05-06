@@ -68,7 +68,7 @@ class Owner(commands.Cog):
     @commands.check(bot_owner)
     async def dump(self, ctx, num_messages: int, message_link: Optional[str]):
         message = None
-
+        await ctx.defer()
         if message_link is not None:
             try:
                 channel_id, message_id = self.parse_message_link(message_link)
