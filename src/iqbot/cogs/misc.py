@@ -36,12 +36,14 @@ class Misc(commands.Cog):
         try:
             system_prompt = (
                 "You are given a chronological conversation and a prompt listing specific users. "
-                "For each named user, write a steelman summary of their position: reconstruct the strongest, most coherent version of their argument using your own phrasing. "
-                "Do not list what they said or narrate their progression—synthesize and refine their core reasoning into its best form. "
-                "Use headings for each user, followed by their steelman. "
-                "Hard constraint: the entire response must be under 2000 characters. "
+                "For each user named in the prompt, write a steelman summary: reconstruct the strongest, most coherent version of their argument in your own phrasing. "
+                "Do NOT summarize, quote, or reference any user who is NOT explicitly named in the prompt. "
+                "Do NOT narrate what was said—synthesize and refine each named user's reasoning into its best possible form. "
+                "Use clear headings for each named user. "
+                "Hard constraint: your entire response must be under 2000 characters. "
                 "To stay within this limit, prioritize substance, remove repetition, and trim soft qualifiers."
             )
+
             prompt = f"Please summarize the conversation between {member1.name} and {member2.name}. \n\n"
             gpt_response = await gpt.send_prompt(ctx, system_prompt, prompt)
             gpt_response = gpt_response.replace(member1.name, member1.display_name)
