@@ -53,23 +53,27 @@ class GenAIBase:
         )
 
     def format_message(self, message: Message) -> str:
-        reply_id = None
+        author = message.author.name
+        reply_author = None
         if (
             message.reference
             and message.reference.resolved
             and isinstance(message.reference.resolved, Message)
         ):
-            reply_id = message.reference.resolved.id
-        id = message.id
-        author = message.author.name
-        if not reply_id:
-            return f"[ID: {id} | {author}]: {message.content}"
-        else:
-            return f"[ID: {id} | {author} replying to {reply_id}]: {message.content}"
+            reply_author = message.reference.resolved.author.name
+        if reply_author:
+            return f"{author} (re {reply_author}): {message.content}"
+        return f"{author}: {message.content}"
 
-    async def read_context(self, ctx: ApplicationContext | Reaction | Message) -> str:
+    async def read_context(
+        self,
+        ctx: ApplicationContext | Reaction | Message,
+        participants: list[int] | None = None,
+    ) -> str:
         messages = []
         context_tokens = self.available_tokens("")
+        reply_target_ids: set[int] = set()
+
         if isinstance(ctx, ApplicationContext):
             channel = ctx.channel
         elif isinstance(ctx, Message):
@@ -88,6 +92,14 @@ class GenAIBase:
         ):
             if message.author.bot:
                 continue
+
+            if participants is not None:
+                is_participant = message.author.id in participants
+                is_reply_target = message.id in reply_target_ids
+                if not is_participant and not is_reply_target:
+                    continue
+                if is_participant and message.reference and message.reference.message_id:
+                    reply_target_ids.add(message.reference.message_id)
 
             formatted_message = self.format_message(message)
             message_tokens = self.count_tokens(formatted_message)
@@ -179,9 +191,9 @@ class GenAIBase:
         ctx: ApplicationContext | Reaction,
         system_prompt: str,
         command_prompt: str,
+        participants: list[int] | None = None,
     ) -> str:
         raise NotImplementedError("send_prompt must be implemented by subclasses")
-        pass
 
 
 class GenAIGpt(GenAIBase):
@@ -219,9 +231,10 @@ class GenAIGpt(GenAIBase):
         ctx: ApplicationContext | Reaction,
         system_prompt: str,
         command_prompt: str,
+        participants: list[int] | None = None,
     ) -> str:
 
-        conversation = await self.read_context(ctx)
+        conversation = await self.read_context(ctx, participants=participants)
 
         if not conversation:
             logger.warning("No conversation history found.")
@@ -282,8 +295,9 @@ class GenAIAnthropic(GenAIBase):
         ctx: ApplicationContext | Reaction,
         system_prompt: str,
         command_prompt: str,
+        participants: list[int] | None = None,
     ) -> str:
-        conversation = await self.read_context(ctx)
+        conversation = await self.read_context(ctx, participants=participants)
 
         if not conversation:
             logger.warning("No conversation history found.")
