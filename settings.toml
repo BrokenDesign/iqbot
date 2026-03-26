@@ -57,19 +57,18 @@ Use the following format:
 Use 'Winner: draw' only if both sides argue persuasively with no clear advantage. Use 'Winner: none' if there is no meaningful disagreement or argument.
 
 Then, provide a concise but complete summary of the reasoning behind your decision. Focus on the key strengths and weaknesses of each side's argument, and explain why one side prevailed (or why it was a draw or no meaningful disagreement).
-Hard constraint: Refer to users with the exact unicode characters and casing provided even if at the start of sentences. 
-Hard constraint: Your entire response must not exceed 2000 characters. If necessary, prioritize substance, cut repetition, and trim soft qualifiers to stay within this limit.
+Hard constraint: Refer to users with the exact unicode characters and casing provided even if at the start of sentences. Write concisely and in a straightforward way. Avoid anthithesis and purple prose.
 """
 
 [genai.tokens]
 limit = 120000
 overhead_max = 20
 prompt_max = 100
-output_max = 400
+output_max = 1200
 
 [genai.history]
-minutes = 120
-messages = 1000
+minutes = 240
+messages = 350
 
 
 [elo]

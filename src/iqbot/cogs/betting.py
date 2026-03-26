@@ -13,6 +13,7 @@ from sqlalchemy import select
 from iqbot import db, genai
 from iqbot.checks import bot_manager
 from iqbot.config import settings
+from iqbot.utils import send_long_message
 from iqbot.db import Bet, User
 
 
@@ -107,7 +108,10 @@ class Betting(commands.Cog):
 
                 prompt = f"Who won the argument, {member1.name} or {member2.name}?"
                 genai_response = await genai.client.send_prompt(
-                    reaction, settings.genai.system_prompt, prompt
+                    reaction,
+                    settings.genai.system_prompt,
+                    prompt,
+                    participants=[bet.user_id_1, bet.user_id_2],
                 )
                 match = re.search(r"(?<=winner:\s).+(?=\*\*)", genai_response.lower())
 
@@ -127,7 +131,7 @@ class Betting(commands.Cog):
                     user2 = await session.merge(user2)
                     await session.commit()
 
-                await reaction.message.channel.send(genai_response[0:1999])
+                await send_long_message(reaction.message.channel, genai_response)
                 await reaction.message.channel.send(
                     f"{member1.display_name}\n{member1.mention} **IQ {start_iq1} -> {user1.iq}**\n{member2.mention} **IQ {start_iq2} -> {user2.iq}**"
                 )
@@ -230,7 +234,10 @@ class Betting(commands.Cog):
         try:
             prompt = f"Evaluate the debate between {member1.name} and {member2.name} on the topic: {topic}. Include the topic in the response."
             genai_response = await genai.client.send_prompt(
-                ctx, settings.genai.system_prompt, prompt
+                ctx,
+                settings.genai.system_prompt,
+                prompt,
+                participants=[member1.id, member2.id],
             )
             match = re.search(r"(?<=winner:\s).+(?=\*\*)", genai_response.lower())
 
@@ -246,7 +253,7 @@ class Betting(commands.Cog):
                     user2 = await session.merge(user2)
                     await session.commit()
 
-            await ctx.channel.send(genai_response[0:1999])
+            await send_long_message(ctx.channel, genai_response)
 
         except Exception as e:
             logger.error(f"Error in evaluate command: {e}")
